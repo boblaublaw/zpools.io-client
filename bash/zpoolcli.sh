@@ -1,9 +1,11 @@
 #!/bin/bash
-# zpoolcli.sh — PAT-first auth where supported; prompt for creds only when JWT is needed.
+# zpoolcli.sh — PAT-first where supported; JWT where required; SSH for ZFS.
+# Clean command structure:
+#   - claim <code>                 (JWT access)
+#   - billing balance|ledger|start (JWT access; /dodo/start kept server-side)
+#   - job, pat, sshkey, zpool      (JWTPAT or JWT as appropriate)
+#   - zfs                          (SSH)
 
-# -----------------------------
-# Safe shell defaults
-# -----------------------------
 set -eo pipefail
 
 # -----------------------------
@@ -15,7 +17,6 @@ SSH_HOST="${SSH_HOST:-}"
 SSH_PRIVKEY_FILE="${SSH_PRIVKEY_FILE:-}"
 ZPOOLUSER="${ZPOOLUSER:-}"
 ZPOOLPAT="${ZPOOLPAT:-}"   # optional; may come from env or rcfile
-ZDEBUG="${ZDEBUG:-}"       # optional; if set to anything, we flip ON for SendEnv
 MAX_AGE_SECONDS="${MAX_AGE_SECONDS:-3600}"
 
 # CLI overrides (non-empty only if provided)
@@ -23,9 +24,12 @@ CLI_USERNAME=""
 CLI_PASSWORD=""
 
 emit_json() {
-  # If stdout is a TTY, pretty print via jq; otherwise raw
-  if [[ -t 1 ]] && command -v jq >/dev/null 2>&1; then
-    jq -Cr . <<<"$1" || echo "$1"
+  if command -v jq >/dev/null 2>&1; then
+    if [[ -t 1 ]]; then
+      jq -CrS . <<<"$1" || echo "$1"
+    else
+      jq -cS . <<<"$1" || echo "$1"
+    fi
   else
     echo "$1"
   fi
@@ -45,8 +49,7 @@ is_tty() {
 }
 
 # -----------------------------
-# Early option parsing (only flags; leave command + args intact)
-# Supports: --rcfile <path>  --username <u>  --password <p>
+# Early option parsing (flags only)
 # -----------------------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -67,19 +70,17 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --help|-h)
-      # Defer to usage() which references (possibly rcfile-provided) API_DOMAIN/SSH_HOST
+      # Defer to usage() so it can show rcfile-provided domains if set
       break
       ;;
     *)
-      # Stop at first non-flag (the command)
       break
       ;;
   esac
 done
 
 # -----------------------------
-# Load rcfile, but DO NOT pull a password from it.
-# Only set variables that are currently unset in the environment.
+# Load rcfile (no passwords)
 # -----------------------------
 if [[ -f "$DOTFILE" ]]; then
   eval "$(
@@ -88,7 +89,6 @@ if [[ -f "$DOTFILE" ]]; then
       source "$DOTFILE"
       for var in API_DOMAIN BZFS_BIN LOCAL_POOL REMOTE_POOL SSH_HOST SSH_PRIVKEY_FILE ZPOOLUSER ZPOOLPAT; do
         val="${!var:-}"
-        # Print conditional export so parent only sets if still empty
         if [[ -n "$val" ]]; then
           printf 'if [[ -z "${%s:-}" ]]; then export %s=%q; fi\n' "$var" "$var" "$val"
         fi
@@ -97,44 +97,56 @@ if [[ -f "$DOTFILE" ]]; then
   )"
 fi
 
-# Apply ZDEBUG="ON" if ZDEBUG is set at all
-if [[ -n "$ZDEBUG" ]]; then
-  export ZDEBUG="ON"
-fi
-
 # -----------------------------
 # Usage
 # -----------------------------
 usage() {
   echo
-  echo "API operations (over HTTP to ${API_DOMAIN:-https://api.dev.zpools.io}, using username and password):"
-  echo "  $0 billing balance"
-  echo "  $0 billing ledger [since (YYYY-MM-DD)] [until (YYYY-MM-DD)] [limit (default 500)]"
-  echo "  $0 dodo-start <quantity>"
-  echo "  $0 pat create <label> [<soft-expiry YYYY-MM-DD>] [<tenant_id>] [scope1] [scope2] ..."
-  echo "  $0 pat revoke <key_id>"
-  echo "  $0 sshkey add <public_key>"
-  echo "  $0 sshkey delete <pubkey_id>"
-  echo "  $0 zpool create <new_size_in_gib> <volume_type>"
-  echo "  $0 zpool delete <zpool_id>"
+  echo "API: ${API_DOMAIN:-https://api.dev.zpools.io}    SSH: ${SSH_HOST:-ssh.dev.zpools.io}"
   echo
-  echo "API operations (over HTTP to ${API_DOMAIN:-https://api.dev.zpools.io}, using PAT, or username and password):"
-  echo "  $0 job list"
-  echo "  $0 job show <job_id>"
-  echo "  $0 job history <job_id>"
-  echo "  $0 hello"
-  echo "  $0 pat list"
-  echo "  $0 sshkey list"
-  echo "  $0 zpool list"
-  echo "  $0 zpool modify <zpool_id> <volume_type: gp3|sc1>"
-  echo "  $0 zpool scrub <zpool_id>"
+  echo "Commands (left column shows auth type; PAT-capable lines include required PAT scope):"
   echo
-  echo "ZFS operations (over SSH to ${SSH_HOST:-ssh.dev.zpools.io}, using \$ZPOOLUSER and \$SSH_PRIVKEY_FILE):"
-  echo "  $0 zfs list <dataset> [flags...]"
-  echo "  $0 zfs destroy <dataset> [flags...]"
-  echo "  $0 zfs snapshot <dataset@snapshot>"
-  echo "  $0 zfs recv [flags...] <zpool/dataset>"
-  echo "  $0 zfs ssh"
+  echo "  === Identity & Codes ==="
+  echo "  [JWT]     $0 claim <code>"
+  echo
+  echo "  === Billing ==="
+  echo "  [JWT]     $0 billing balance"
+  echo "  [JWT]     $0 billing ledger [since YYYY-MM-DD] [until YYYY-MM-DD] [limit (default 500)]"
+  echo "  [JWT]     $0 billing start <amount_dollars>"
+  echo
+  echo "  === Personal Access Tokens ==="
+  echo "  [JWTPAT]  $0 pat list                                  (scope: pat)"
+  echo "  [JWT]     $0 pat create <label> [<soft-expiry YYYY-MM-DD>] [<tenant_id>] [scope1] [scope2] ..."
+  echo "  [JWT]     $0 pat revoke <key_id>"
+  echo
+  echo "  === SSH Keys ==="
+  echo "  [JWTPAT]  $0 sshkey list                               (scope: sshkey)"
+  echo "  [JWT]     $0 sshkey add <public_key>"
+  echo "  [JWT]     $0 sshkey delete <pubkey_id>"
+  echo
+  echo "  === Jobs ==="
+  echo "  [JWTPAT]  $0 job list                                  (scope: job)"
+  echo "  [JWTPAT]  $0 job show <job_id>                         (scope: job)"
+  echo "  [JWTPAT]  $0 job history <job_id>                      (scope: job)"
+  echo
+  echo "  === Zpools ==="
+  echo "  [JWTPAT]  $0 zpool list                                (scope: zpool)"
+  echo "  [JWT]     $0 zpool create <new_size_in_gib> <volume_type>"
+  echo "  [JWT]     $0 zpool delete <zpool_id>"
+  echo "  [JWTPAT]  $0 zpool scrub <zpool_id>                    (scope: zpool)"
+  echo "  [JWTPAT]  $0 zpool modify <zpool_id> <volume_type>     (scope: zpool)"
+  echo "            (volume_type: gp3|sc1)"
+  echo
+  echo "  === Misc ==="
+  echo "  [JWTPAT]  $0 hello                                     (scope: none)"
+  echo
+  echo "  === ZFS over SSH ==="
+  echo "  [SSH]     $0 zfs list <dataset> [flags...]"
+  echo "  [SSH]     $0 zfs destroy <dataset> [flags...]"
+  echo "  [SSH]     $0 zfs snapshot <dataset@snapshot>"
+  echo "  [SSH]     $0 zfs recv [flags...] <zpool/dataset>        (stdin: zfs send ...)"
+  echo "  [SSH]     $0 zfs ssh [remote command...]"
+  echo "  [SSH]     $0 zfs bzfs    (requires BZFS_BIN, LOCAL_POOL, REMOTE_POOL)"
   echo
   echo "Options:"
   echo "  --rcfile <path>       Load config variables from an alternate rcfile (default: ${DOTFILE})"
@@ -142,14 +154,14 @@ usage() {
   echo "  --password <value>    Password for JWT auth when needed (non-interactive/CI)"
   echo
   echo "Notes:"
-  echo "  • ZPOOLPAT is used automatically for endpoints that accept PAT. If present and rejected (401/403), the command fails."
+  echo "  • ZPOOLPAT is used automatically for PAT-capable endpoints ([JWTPAT]). If a PAT is rejected (401/403), the command fails and does not fall back to JWT."
   echo "  • No password is ever read from the rcfile. Username *may* be read (ZPOOLUSER)."
   echo "  • For endpoints requiring JWT, if creds are missing and stdin is not a TTY, the command errors out."
   echo "  • Required config if missing: set in ${DOTFILE} or export the env var:"
-  echo "      API_DOMAIN   (e.g., https://api.dev.zpools.io)"
-  echo "      SSH_HOST     (e.g., ssh.dev.zpools.io)"
-  echo "      SSH_PRIVKEY_FILE (path to your private key)"
-  echo "      ZPOOLUSER    (username; can also pass via --username)"
+  echo "      API_DOMAIN         (e.g., https://api.dev.zpools.io)"
+  echo "      SSH_HOST           (e.g., ssh.dev.zpools.io)"
+  echo "      SSH_PRIVKEY_FILE   (path to your private key)"
+  echo "      ZPOOLUSER          (username; can also pass via --username)"
   echo
   exit 1
 }
@@ -193,12 +205,12 @@ do_http() {
 # -----------------------------
 token_file_for_user() {
   local user="$1"
-  local domain=$(echo "$2" | sed -E 's#^https?://##; s#/.*##')
+  local domain
+  domain=$(echo "$2" | sed -E 's#^https?://##; s#/.*##')
   echo "/dev/shm/zpool_token_${domain}_${user}"
 }
 
 prompt_username_if_needed() {
-  # Decide effective username for JWT ops
   if [[ -n "$CLI_USERNAME" ]]; then
     ZPOOLUSER="$CLI_USERNAME"
   fi
@@ -216,7 +228,7 @@ prompt_password_if_needed() {
     PASSWORD="$CLI_PASSWORD"
   else
     if is_tty; then
-      read -r -s -p "Password: " PASSWORD
+      read -r -s -p "zpools.io Password: " PASSWORD
       echo >&2
     else
       die "Password required but not provided. Use --password or run interactively"
@@ -228,7 +240,6 @@ login_and_cache_tokens() {
   local user="$1"
   local token_file; token_file="$(token_file_for_user "$user" "${API_DOMAIN}")"
 
-  # Login requires password (no rcfile password)
   prompt_password_if_needed
 
   note "Authenticating to refresh token..."
@@ -268,7 +279,6 @@ login_and_cache_tokens() {
 }
 
 ensure_jwt_fresh() {
-  # Ensures access/id tokens exist & are fresh for $ZPOOLUSER
   prompt_username_if_needed
   local token_file; token_file="$(token_file_for_user "$ZPOOLUSER" "${API_DOMAIN}")"
 
@@ -276,7 +286,6 @@ ensure_jwt_fresh() {
     local file_json expires_at
     file_json="$(cat "$token_file")"
     expires_at="$(jq -r '.expires_at // 0' <<<"$file_json")"
-    # If expired, refresh
     if (( $(date +%s) >= expires_at )); then
       login_and_cache_tokens "$ZPOOLUSER"
     fi
@@ -286,14 +295,13 @@ ensure_jwt_fresh() {
 }
 
 bearer() {
-  # bearer access|id
-  local kind="$1"
+  local kind="$1" # "access" or "id"
   local token_file; token_file="$(token_file_for_user "$ZPOOLUSER" "${API_DOMAIN}")"
   jq -r --arg k "${kind}_token" '.[$k]' "$token_file"
 }
 
 # -----------------------------
-# PAT-first API wrapper for endpoints that accept PAT
+# API wrappers
 # -----------------------------
 api_pat_or_jwt_access() {
   # api_pat_or_jwt_access METHOD PATH [JSON_BODY]
@@ -303,30 +311,23 @@ api_pat_or_jwt_access() {
 
   if [[ -n "$ZPOOLPAT" ]]; then
     do_http "$method" "$path" "Authorization: Bearer ${ZPOOLPAT}" "$data"
-    # treat ANY 2xx as success
     if [[ "$HTTP_STATUS" =~ ^2[0-9][0-9]$ ]]; then
       emit_json "$RESPONSE"
       return 0
     elif [[ "$HTTP_STATUS" == "401" || "$HTTP_STATUS" == "403" ]]; then
-      # Explicitly bail — do NOT fallback to JWT
       emit_json "$RESPONSE"
       die "PAT was rejected with HTTP ${HTTP_STATUS}. Fix ZPOOLPAT or remove it to use JWT."
     else
-      # Other errors with PAT — show and exit
       emit_json "$RESPONSE"
       die "Request failed with HTTP ${HTTP_STATUS}"
     fi
   fi
 
-  # No PAT; use JWT access token
   ensure_jwt_fresh
   do_http "$method" "$path" "Authorization: Bearer $(bearer access)" "$data"
   emit_json "$RESPONSE"
 }
 
-# -----------------------------
-# Strict-JWT wrappers
-# -----------------------------
 api_jwt_access() {
   # api_jwt_access METHOD PATH [JSON_BODY]
   local method="$1"
@@ -334,16 +335,6 @@ api_jwt_access() {
   local data="${3:-}"
   ensure_jwt_fresh
   do_http "$method" "$path" "Authorization: Bearer $(bearer access)" "$data"
-  emit_json "$RESPONSE"
-}
-
-api_jwt_id() {
-  # api_jwt_id METHOD PATH [JSON_BODY]  (for dodo-start)
-  local method="$1"
-  local path="$2"
-  local data="${3:-}"
-  ensure_jwt_fresh
-  do_http "$method" "$path" "Authorization: Bearer $(bearer id)" "$data"
   emit_json "$RESPONSE"
 }
 
@@ -370,54 +361,150 @@ billing_operations() {
       fi
       api_jwt_access GET "/billing/ledger${query}"
       ;;
+    start)
+      # billing start <amount_dollars>
+      [[ -n "${2:-}" ]] || die "Missing amount for billing start. Usage: $0 billing start <amount_dollars>"
+      local amount_dollars="$2"
+      # REST API unchanged: still POST /dodo/start with 'quantity'
+      local payload
+      payload="$(jq -n --argjson q "$amount_dollars" '{quantity:$q}')"
+      api_jwt_access POST "/dodo/start" "$payload"
+      ;;
     usage|help|--help|-h|*)
       echo
-      echo "To see your balance:"
-      echo "    $0 billing balance"
-      echo
-      echo "To see your ledger in JSON:"
-      echo "    $0 billing ledger"
-      echo
-      echo 'To see your ledger in a table (requires "miller"):'
-      echo "    $0 billing ledger | jq -r .detail.items | mlr --ijson --opprint cat | less"
+      echo "Billing commands:"
+      echo "  $0 billing balance"
+      echo "  $0 billing ledger [since YYYY-MM-DD] [until YYYY-MM-DD] [limit]"
+      echo "  $0 billing start <amount_dollars>"
       echo
       exit 1
       ;;
   esac
 }
 
+claim_operation() {
+  # claim <code>
+  [[ -n "${1:-}" ]] || die "Missing code for claim."
+  local claim_code="$1"
+
+  _open_url() {
+    local url="$1"
+    if command -v xdg-open >/dev/null 2>&1; then xdg-open "$url" >/dev/null 2>&1 || true
+    elif command -v open >/dev/null 2>&1; then open "$url" >/dev/null 2>&1 || true
+    elif command -v start >/dev/null 2>&1; then start "$url" >/dev/null 2>&1 || true
+    else
+      note "No system opener found (xdg-open/open/start)."
+      return 1
+    fi
+  }
+
+  _copy_url() {
+    local url="$1"
+    if command -v pbcopy >/dev/null 2>&1; then printf %s "$url" | pbcopy && note "URL copied to clipboard (pbcopy)." && return 0; fi
+    if command -v xclip  >/dev/null 2>&1; then printf %s "$url" | xclip -selection clipboard && note "URL copied to clipboard (xclip)." && return 0; fi
+    if command -v xsel   >/dev/null 2>&1; then printf %s "$url" | xsel --clipboard --input && note "URL copied to clipboard (xsel)." && return 0; fi
+    if command -v clip.exe >/dev/null 2>&1; then printf %s "$url" | clip.exe && note "URL copied to clipboard (clip.exe)." && return 0; fi
+    note "No clipboard tool found (pbcopy/xclip/xsel/clip.exe)."
+    return 1
+  }
+
+  _view_in_pager() {
+    local url="$1"
+    local pager="${PAGER:-}"
+    if [[ -z "$pager" ]]; then
+      if command -v less >/dev/null 2>&1; then pager="less -R"
+      elif command -v more >/dev/null 2>&1; then pager="more"
+      else pager="cat"
+      fi
+    fi
+    curl -fsSL "$url" | eval "$pager"
+  }
+
+  ensure_jwt_fresh
+  local payload; payload="$(jq -n --arg c "$claim_code" '{code:$c}')"
+  do_http POST "/codes/claim" "Authorization: Bearer $(bearer access)" "$payload"
+
+  if [[ "$HTTP_STATUS" =~ ^2[0-9][0-9]$ ]]; then
+    emit_json "$RESPONSE"
+    return 0
+  fi
+
+  if [[ "$HTTP_STATUS" == "428" ]]; then
+    is_tty || die "Interactive TTY required to accept Terms. Re-run in a terminal."
+    local tos_url
+    tos_url="$(jq -r '.detail.tos_url // empty' <<<"$RESPONSE")"
+    [[ -n "$tos_url" ]] || { emit_json "$RESPONSE"; die "Server did not provide tos_url."; }
+
+    echo
+    echo "This code requires accepting Terms of Service."
+    echo "URL: $tos_url"
+    echo
+    echo "Choose an action:"
+    echo "  [O] Open in your default browser"
+    echo "  [V] View in this terminal (pager)"
+    echo "  [C] Copy URL to clipboard"
+    echo "  [P] Print URL again"
+    echo
+
+    while true; do
+      read -r -p "Select action (O/V/C/P), or press Enter to continue to acceptance prompt: " act
+      case "$(tr '[:lower:]' '[:upper:]' <<<"${act}")" in
+        O) _open_url "$tos_url" || true ;;
+        V) _view_in_pager "$tos_url" ;;
+        C) _copy_url "$tos_url" || true ;;
+        P) echo "URL: $tos_url" ;;
+        "") break ;;
+        *) echo "Unknown choice. Use O/V/C/P or Enter." ;;
+      esac
+    done
+
+    echo
+    read -r -p "Type YES to accept the Terms exactly as published at the URL above: " ack
+    if [[ "$ack" != "YES" ]]; then
+      die "Terms not accepted."
+    fi
+
+    local accepted_at
+    accepted_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local commit_payload
+    commit_payload="$(
+      jq -n \
+        --arg c "$claim_code" \
+        --arg u "$tos_url" \
+        --arg t "$accepted_at" \
+        '{code:$c, tos:{url:$u, accepted_at:$t}}'
+    )"
+
+    do_http POST "/codes/claim" "Authorization: Bearer $(bearer access)" "$commit_payload"
+    emit_json "$RESPONSE"
+    [[ "$HTTP_STATUS" =~ ^2[0-9][0-9]$ ]] || exit 1
+    return 0
+  fi
+
+  emit_json "$RESPONSE"
+  exit 1
+}
+
 job_operations() {
   case "$1" in
-    list)
-      api_pat_or_jwt_access GET "/jobs"
-      ;;
-    show)
-      [[ -n "${2:-}" ]] || die "Missing job_id for job show."
-      api_pat_or_jwt_access GET "/job/$2"
-      ;;
-    history)
-      [[ -n "${2:-}" ]] || die "Missing job_id for job history."
-      api_pat_or_jwt_access GET "/job/$2/history"
-      ;;
+    list)    api_pat_or_jwt_access GET "/jobs" ;;
+    show)    [[ -n "${2:-}" ]] || die "Missing job_id for job show."; api_pat_or_jwt_access GET "/job/$2" ;;
+    history) [[ -n "${2:-}" ]] || die "Missing job_id for job history."; api_pat_or_jwt_access GET "/job/$2/history" ;;
     usage|help|--help|-h|*)
       echo
-      echo "To list all jobs:"
-      echo "    $0 job list"
+      echo "Jobs:"
+      echo "  $0 job list"
+      echo "  $0 job show <job_id>"
+      echo "  $0 job history <job_id>"
       echo
-      echo 'To list all jobs in a table (requires "miller"):'
-      echo "    $0 job list | jq -r .detail.jobs \\"
-      echo "        | mlr --ijson --opprint cut -o \\"
-      echo "            -f created_at,current_status.timestamp,current_status.state,job_id,job_type,parameters"
+      echo "Example of some useful commands:"
       echo
-      echo "To show a specific job:"
-      echo "    $0 job show <job_id>"
+      echo "  List all recent jobs, their type, and parameters"
+      echo "    ./zpoolcli.sh job list | jq '.detail.jobs' | mlr --ijson --opprint put '\$last_ts = \$current_status.timestamp' \\"
+      echo "      then cut -o -f created_at,last_ts,job_id,job_type,parameters | sort -n"
       echo
-      echo "To see job history:"
-      echo "    $0 job history <job_id>"
-      echo
-      echo 'To see job history as a table (requires "miller"):'
-      echo "    $0 job history <job_id> | jq -r .detail.history | mlr --ijson --opprint cat | less"
-      echo
+      echo "  Showing all the events from a job in tabular form (requires 'mlr'):"
+      echo "    ./zpoolcli.sh job history <job_id> | jq '.detail.history' | mlr --ijson --opprint cut -o -f timestamp,event_type,message"
       exit 1
       ;;
   esac
@@ -426,46 +513,34 @@ job_operations() {
 pat_operations() {
   case "$1" in
     list)
-      api_jwt_access GET "/pat"
+      api_pat_or_jwt_access GET "/pat"
       ;;
     create)
       [[ -n "${2:-}" ]] || die "Missing <label> for pat create."
       local label="$2"
-      local expiry="${3:-}"       # optional
-      local tenant_id="${4:-}"    # optional
+      local expiry="${3:-}"
+      local tenant_id="${4:-}"
       local scopes_json=""
-
       if [[ $# -ge 5 ]]; then
-        # scopes from args 5 onward
         scopes_json="$(printf '%s\n' "${@:5}" | jq -R . | jq -s .)"
       fi
-
       local payload
       if [[ -n "$scopes_json" ]]; then
         payload="$(
-          jq -n \
-            --arg lbl "$label" \
-            --arg expiry "$expiry" \
-            --arg tenant "$tenant_id" \
-            --argjson scopes "$scopes_json" \
-            '
-              {"label": $lbl}
-              + (if ($expiry|length)>0 then {"expiry": $expiry} else {} end)
-              + (if ($tenant|length)>0 then {"tenant_id": $tenant} else {} end)
-              + (if ($scopes|length)>0 then {"scopes": $scopes} else {} end)
-            '
+          jq -n --arg lbl "$label" --arg expiry "$expiry" --arg tenant "$tenant_id" --argjson scopes "$scopes_json" '
+            {"label": $lbl}
+            + (if ($expiry|length)>0 then {"expiry": $expiry} else {} end)
+            + (if ($tenant|length)>0 then {"tenant_id": $tenant} else {} end)
+            + (if ($scopes|length)>0 then {"scopes": $scopes} else {} end)
+          '
         )"
       else
         payload="$(
-          jq -n \
-            --arg lbl "$label" \
-            --arg expiry "$expiry" \
-            --arg tenant "$tenant_id" \
-            '
-              {"label": $lbl}
-              + (if ($expiry|length)>0 then {"expiry": $expiry} else {} end)
-              + (if ($tenant|length)>0 then {"tenant_id": $tenant} else {} end)
-            '
+          jq -n --arg lbl "$label" --arg expiry "$expiry" --arg tenant "$tenant_id" '
+            {"label": $lbl}
+            + (if ($expiry|length)>0 then {"expiry": $expiry} else {} end)
+            + (if ($tenant|length)>0 then {"tenant_id": $tenant} else {} end)
+          '
         )"
       fi
       api_jwt_access POST "/pat" "$payload"
@@ -476,18 +551,10 @@ pat_operations() {
       ;;
     usage|help|--help|-h|*)
       echo
-      echo "Usage:"
+      echo "PAT:"
       echo "  $0 pat list"
       echo "  $0 pat create <label> [<soft-expiry YYYY-MM-DD>] [<tenant_id>] [scope1] [scope2] ..."
       echo "  $0 pat revoke <key_id>"
-      echo
-      echo "  $0 pat list | jq -r .detail.items | mlr --ijson --opprint cut -o \\"
-      echo "       -f key_id,label,usage_count,scopes,status,created_at,expiry_at,last_used_at,token_ver"
-      echo
-      echo "Notes:"
-      echo "  • 'list' accepts PAT; 'create' and 'revoke' require JWT."
-      echo "  • Positional parsing only for 'create': to specify an optional arg, provide all args to its left."
-      echo "  • If scopes are omitted, 'scopes' is not sent and server defaults apply."
       echo
       exit 1
       ;;
@@ -496,27 +563,15 @@ pat_operations() {
 
 sshkey_operations() {
   case "$1" in
-    list)
-      api_pat_or_jwt_access GET "/sshkey"
-      ;;
-    add)
-      [[ -n "${2:-}" ]] || die "Missing public_key for sshkey add."
-      api_jwt_access POST "/sshkey" "$(jq -n --arg k "$2" '{pubkey:$k}')"
-      ;;
-    delete)
-      [[ -n "${2:-}" ]] || die "Missing pubkey_id for sshkey delete."
-      api_jwt_access DELETE "/sshkey/$2"
-      ;;
+    list)   api_pat_or_jwt_access GET "/sshkey" ;;
+    add)    [[ -n "${2:-}" ]] || die "Missing public_key for sshkey add."; api_jwt_access POST "/sshkey" "$(jq -n --arg k "$2" '{pubkey:$k}')" ;;
+    delete) [[ -n "${2:-}" ]] || die "Missing pubkey_id for sshkey delete."; api_jwt_access DELETE "/sshkey/$2" ;;
     usage|help|--help|-h|*)
       echo
-      echo "To list SSH keys:"
-      echo "    $0 sshkey list"
-      echo
-      echo "To add a new public key:"
-      echo "    $0 sshkey add '<public_key>'"
-      echo
-      echo "To delete a public key by ID:"
-      echo "    $0 sshkey delete <pubkey_id>"
+      echo "SSH Keys:"
+      echo "  $0 sshkey list"
+      echo "  $0 sshkey add '<public_key>'"
+      echo "  $0 sshkey delete <pubkey_id>"
       echo
       exit 1
       ;;
@@ -525,51 +580,27 @@ sshkey_operations() {
 
 zpool_operations() {
   case "$1" in
-    list)
-      api_pat_or_jwt_access GET "/zpools"
-      ;;
-    create)
-      [[ -n "${2:-}" && -n "${3:-}" ]] || die "Missing args for zpool create."
-      api_jwt_access POST "/zpool" "$(jq -n --argjson s "$2" --arg v "$3" '{new_size_in_gib:$s, volume_type:$v}')"
-      ;;
-    scrub)
-      [[ -n "${2:-}" ]] || die "Missing zpool_id for scrub."
-      api_pat_or_jwt_access POST "/zpool/$2/scrub"
-      ;;
-    delete)
-      [[ -n "${2:-}" ]] || die "Missing zpool_id for delete."
-      api_jwt_access DELETE "/zpool/$2"
-      ;;
-    modify)
-      # zpool modify <zpool_id> <volume_type>
-      [[ -n "${2:-}" && -n "${3:-}" ]] || die "Usage: $0 zpool modify <zpool_id> <volume_type: gp3|sc1>"
-      local zpid="$2"
-      # normalize and validate volume type
-      local vt; vt="$(tr '[:upper:]' '[:lower:]' <<<"$3")"
-      case "$vt" in
-        gp3|sc1) ;;
-        *) die "Invalid volume_type '$3'. Allowed: gp3, sc1" ;;
-      esac
-      # send both keys for server-side compatibility
-      local payload; payload="$(jq -n --arg vt "$vt" '{target_volume_type:$vt, volume_type:$vt}')"
-      api_pat_or_jwt_access POST "/zpool/${zpid}/modify" "$payload"
-      ;;
+    list)    api_pat_or_jwt_access GET "/zpools" ;;
+    create)  [[ -n "${2:-}" && -n "${3:-}" ]] || die "Missing args for zpool create."
+             api_jwt_access POST "/zpool" "$(jq -n --argjson s "$2" --arg v "$3" '{new_size_in_gib:$s, volume_type:$v}')" ;;
+    delete)  [[ -n "${2:-}" ]] || die "Missing zpool_id for delete."
+             api_jwt_access DELETE "/zpool/$2" ;;
+    scrub)   [[ -n "${2:-}" ]] || die "Missing zpool_id for scrub."
+             api_pat_or_jwt_access POST "/zpool/$2/scrub" ;;
+    modify)  [[ -n "${2:-}" && -n "${3:-}" ]] || die "Usage: $0 zpool modify <zpool_id> <volume_type: gp3|sc1>"
+             local zpid="$2"
+             local vt; vt="$(tr '[:upper:]' '[:lower:]' <<<"$3")"
+             case "$vt" in gp3|sc1) ;; *) die "Invalid volume_type '$3'. Allowed: gp3, sc1" ;; esac
+             local payload; payload="$(jq -n --arg vt "$vt" '{target_volume_type:$vt, volume_type:$vt}')"
+             api_pat_or_jwt_access POST "/zpool/${zpid}/modify" "$payload" ;;
     usage|help|--help|-h|*)
       echo
-      echo "To list zpools:"
-      echo "    $0 zpool list"
-      echo
-      echo "To create a zpool:"
-      echo "    $0 zpool create <new_size_in_gib> <volume_type>"
-      echo
-      echo "To scrub a zpool:"
-      echo "    $0 zpool scrub <zpool_id>"
-      echo
-      echo "To delete a zpool:"
-      echo "    $0 zpool delete <zpool_id>"
-      echo
-      echo "To request an EBS tier change for all volumes in a zpool:"
-      echo "    $0 zpool modify <zpool_id> <gp3|sc1>"
+      echo "Zpools:"
+      echo "  $0 zpool list"
+      echo "  $0 zpool create <new_size_in_gib> <volume_type>"
+      echo "  $0 zpool delete <zpool_id>"
+      echo "  $0 zpool scrub <zpool_id>"
+      echo "  $0 zpool modify <zpool_id> <gp3|sc1>"
       echo
       exit 1
       ;;
@@ -590,7 +621,6 @@ function sync_bzfs() {
 zfs_operations() {
   local zfs_cmd="$1"; shift || true
 
-  # Require SSH config for any zfs op
   [[ -n "$SSH_HOST" ]] || die "SSH_HOST is required for zfs ops. Set it in ${DOTFILE} or export SSH_HOST."
   [[ -n "$SSH_PRIVKEY_FILE" ]] || die "SSH_PRIVKEY_FILE is required for zfs ops. Set it in ${DOTFILE} or export SSH_PRIVKEY_FILE."
   [[ -f "$SSH_PRIVKEY_FILE" ]] || die "SSH_PRIVKEY_FILE '$SSH_PRIVKEY_FILE' not found."
@@ -604,56 +634,44 @@ zfs_operations() {
 
   case "$zfs_cmd" in
     bzfs)
-        [[ -n "$BZFS_BIN" ]] || die "BZFS_BIN is required for bzfs sync. Set it in ${DOTFILE} or export BZFS_BIN."
-        [[ -n "$LOCAL_POOL" ]] || die "LOCAL_POOL is required for bzfs sync. Set it in ${DOTFILE} or export LOCAL_POOL."
-        [[ -n "$REMOTE_POOL" ]] || die "REMOTE_POOL is required for bzfs sync. Set it in ${DOTFILE} or export REMOTE_POOL."
-        sync_bzfs ${LOCAL_POOL} ${REMOTE_POOL}
+      [[ -n "$BZFS_BIN" ]] || die "BZFS_BIN is required for bzfs sync. Set it in ${DOTFILE} or export BZFS_BIN."
+      [[ -n "$LOCAL_POOL" ]] || die "LOCAL_POOL is required for bzfs sync. Set it in ${DOTFILE} or export LOCAL_POOL."
+      [[ -n "$REMOTE_POOL" ]] || die "REMOTE_POOL is required for bzfs sync. Set it in ${DOTFILE} or export REMOTE_POOL."
+      sync_bzfs "${LOCAL_POOL}" "${REMOTE_POOL}"
       ;;
     list)
       [[ -n "${1:-}" ]] || die "Missing dataset for zfs list."
       local dataset="$1"; shift || true
-      ssh -o SendEnv=ZDEBUG -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_PRIVKEY_FILE" \
-          "$ZPOOLUSER@$SSH_HOST" zfs list "$dataset" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs list "$dataset" "$@"
       ;;
     destroy)
       [[ -n "${1:-}" ]] || die "Missing dataset for zfs destroy."
       local dataset="$1"; shift || true
-      ssh -o SendEnv=ZDEBUG -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_PRIVKEY_FILE" \
-          "$ZPOOLUSER@$SSH_HOST" zfs destroy "$dataset" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs destroy "$dataset" "$@"
       ;;
     snapshot)
       [[ -n "${1:-}" ]] || die "Missing dataset@snapshot for zfs snapshot."
       local snap="$1"
-      ssh -o SendEnv=ZDEBUG -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_PRIVKEY_FILE" \
-          "$ZPOOLUSER@$SSH_HOST" zfs snapshot "$snap"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs snapshot "$snap"
       ;;
     recv)
       (( $# >= 1 )) || { echo; echo "Usage: zfs send localpool/ds@snap | $0 zfs recv [flags...] <zpool/dataset>"; echo; exit 1; }
       local full_dataset="${@: -1}"
       local recv_flags=("${@:1:$#-1}")
-      ssh -o SendEnv=ZDEBUG -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_PRIVKEY_FILE" \
-          "$ZPOOLUSER@$SSH_HOST" zfs recv "${recv_flags[@]}" "$full_dataset"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs recv "${recv_flags[@]}" "$full_dataset"
       ;;
     ssh)
-      ssh -o SendEnv=ZDEBUG -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_PRIVKEY_FILE" \
-          "$ZPOOLUSER@$SSH_HOST" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" "$@"
       ;;
     usage|help|--help|-h|*)
       echo
-      echo "To list ZFS datasets:"
-      echo "    $0 zfs list <dataset> [flags...]"
-      echo
-      echo "To destroy a dataset:"
-      echo "    $0 zfs destroy <dataset> [flags...]"
-      echo
-      echo "To create a snapshot:"
-      echo "    $0 zfs snapshot <dataset@snapshot>"
-      echo
-      echo "To receive a stream:"
-      echo "    zfs send localpool/ds@snap | $0 zfs recv [flags...] <zpool/dataset>"
-      echo
-      echo "To open an SSH session:"
-      echo "    $0 zfs ssh"
+      echo "ZFS over SSH:"
+      echo "  $0 zfs list <dataset> [flags...]"
+      echo "  $0 zfs destroy <dataset> [flags...]"
+      echo "  $0 zfs snapshot <dataset@snapshot>"
+      echo "  zfs send localpool/ds@snap | $0 zfs recv [flags...] <zpool/dataset>"
+      echo "  $0 zfs ssh"
+      echo "  $0 zfs bzfs"
       echo
       exit 1
       ;;
@@ -671,11 +689,9 @@ case "$1" in
     [[ -n "${1:-}" ]] || { echo "Error: Missing operation for billing." >&2; billing_operations usage; }
     billing_operations "$@"
     ;;
-  dodo-start)
+  claim)
     shift
-    [[ -n "${1:-}" ]] || die "Missing quantity for dodo-start. Usage: $0 dodo-start <quantity>"
-    local_qty="$1"
-    api_jwt_id POST "/dodo/start" "$(jq -n --argjson q "$local_qty" '{quantity:$q}')"
+    claim_operation "$@"
     ;;
   hello)
     api_pat_or_jwt_access GET "/hello"

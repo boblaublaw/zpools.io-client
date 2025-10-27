@@ -61,39 +61,33 @@ REMOTE_POOL="you@ssh.zpools.io:your-remote-zpool-id/your-remote-dataset"
 The CLI organizes commands by feature group:
 
 - Codes
-  - claim <code>        (JWT)
-
-- Billing
-  - billing balance     (JWT)
-  - billing ledger      (JWT)
-  - billing start       (JWT)
-
-- Personal Access Tokens (TBD docs)
-  - pat list | create | revoke
-
-- SSH Keys
-  - sshkey list | add | delete     (JWT / PAT)
-
-- Jobs
-  - job list | show | history      (JWT / PAT)
-
-- Zpools
-  - zpool list | create | delete | scrub | modify   (JWT / PAT)
-
-- ZFS (over SSH)
-  - zfs list | destroy | snapshot | recv | ssh | bzfs   (SSH)
-
+  - claim $code (Auth: JWT)
+ - Billing
+   - billing balance  (Auth: JWT)
+   - billing ledger (Auth: JWT)
+   - billing start (Auth: JWT)
+ - Personal Access Tokens (TBD docs)
+   - pat list | create | revoke
+ - SSH Keys
+   - sshkey list | add | delete (Auth: JWT / PAT)
+ - Jobs
+   - job list | show | history (Auth: JWT / PAT)
+ - Zpools
+   - zpool list | create | delete | scrub | modify (Auth: JWT / PAT)
+ - ZFS (over SSH)
+   - zfs list | destroy | snapshot | recv | ssh | bzfs (Auth: SSH Key)
+ 
 Run any group without arguments for detailed help:
-- ./zpoolcli.sh billing
-- ./zpoolcli.sh zpool
-- ./zpoolcli.sh zfs
+ - ./zpoolcli.sh billing
+ - ./zpoolcli.sh zpool
+ - ./zpoolcli.sh zfs
 
 ---
 
 ## Token Behavior
-- The CLI prompts for your zpools.io username and password when needed.
-- Tokens are cached securely in a temporary location for short reuse windows (e.g., /dev/shm).
-- Long-lived Personal Access Tokens (PATs) are TBD and will be documented later.
+ - The CLI prompts for your zpools.io username and password when needed.
+ - Tokens are cached securely in a temporary location for short reuse windows (e.g., /dev/shm).
+ - Long-lived Personal Access Tokens (PATs) are TBD and will be documented later.
 
 ---
 

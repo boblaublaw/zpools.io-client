@@ -1,0 +1,9 @@
+[project]
+name = "zpools-workspace"
+version = "0.1.0"
+description = "Workspace for zpools.io client tools"
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["packages/*"]

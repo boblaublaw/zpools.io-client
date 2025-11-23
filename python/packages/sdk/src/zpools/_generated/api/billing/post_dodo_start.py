@@ -5,7 +5,7 @@ import httpx
 
 from ...client import AuthenticatedClient, Client
 from ...models.post_dodo_start_body import PostDodoStartBody
-from ...models.post_dodo_start_response_200 import PostDodoStartResponse200
+from ...models.post_dodo_start_response_201 import PostDodoStartResponse201
 from ...types import Response
 
 
@@ -30,11 +30,11 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | PostDodoStartResponse200:
-    if response.status_code == 200:
-        response_200 = PostDodoStartResponse200.from_dict(response.json())
+) -> Any | PostDodoStartResponse201:
+    if response.status_code == 201:
+        response_201 = PostDodoStartResponse201.from_dict(response.json())
 
-        return response_200
+        return response_201
 
     response_default = cast(Any, None)
     return response_default
@@ -42,7 +42,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | PostDodoStartResponse200]:
+) -> Response[Any | PostDodoStartResponse201]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -55,7 +55,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: PostDodoStartBody,
-) -> Response[Any | PostDodoStartResponse200]:
+) -> Response[Any | PostDodoStartResponse201]:
     """Initiate payment session
 
      Start a DodoPay payment session to add credits to account.
@@ -68,7 +68,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostDodoStartResponse200]
+        Response[Any | PostDodoStartResponse201]
     """
 
     kwargs = _get_kwargs(
@@ -86,7 +86,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: PostDodoStartBody,
-) -> Any | PostDodoStartResponse200 | None:
+) -> Any | PostDodoStartResponse201 | None:
     """Initiate payment session
 
      Start a DodoPay payment session to add credits to account.
@@ -99,7 +99,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostDodoStartResponse200
+        Any | PostDodoStartResponse201
     """
 
     return sync_detailed(
@@ -112,7 +112,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: PostDodoStartBody,
-) -> Response[Any | PostDodoStartResponse200]:
+) -> Response[Any | PostDodoStartResponse201]:
     """Initiate payment session
 
      Start a DodoPay payment session to add credits to account.
@@ -125,7 +125,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostDodoStartResponse200]
+        Response[Any | PostDodoStartResponse201]
     """
 
     kwargs = _get_kwargs(
@@ -141,7 +141,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: PostDodoStartBody,
-) -> Any | PostDodoStartResponse200 | None:
+) -> Any | PostDodoStartResponse201 | None:
     """Initiate payment session
 
      Start a DodoPay payment session to add credits to account.
@@ -154,7 +154,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostDodoStartResponse200
+        Any | PostDodoStartResponse201
     """
 
     return (

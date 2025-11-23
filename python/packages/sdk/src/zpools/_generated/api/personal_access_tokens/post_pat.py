@@ -5,7 +5,7 @@ import httpx
 
 from ...client import AuthenticatedClient, Client
 from ...models.post_pat_body import PostPatBody
-from ...models.post_pat_response_200 import PostPatResponse200
+from ...models.post_pat_response_201 import PostPatResponse201
 from ...types import Response
 
 
@@ -28,11 +28,11 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Any | PostPatResponse200:
-    if response.status_code == 200:
-        response_200 = PostPatResponse200.from_dict(response.json())
+def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Any | PostPatResponse201:
+    if response.status_code == 201:
+        response_201 = PostPatResponse201.from_dict(response.json())
 
-        return response_200
+        return response_201
 
     response_default = cast(Any, None)
     return response_default
@@ -40,7 +40,7 @@ def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Res
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | PostPatResponse200]:
+) -> Response[Any | PostPatResponse201]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -53,7 +53,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: PostPatBody,
-) -> Response[Any | PostPatResponse200]:
+) -> Response[Any | PostPatResponse201]:
     """Create personal access token
 
      Generate a new PAT for API authentication.
@@ -66,7 +66,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostPatResponse200]
+        Response[Any | PostPatResponse201]
     """
 
     kwargs = _get_kwargs(
@@ -84,7 +84,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: PostPatBody,
-) -> Any | PostPatResponse200 | None:
+) -> Any | PostPatResponse201 | None:
     """Create personal access token
 
      Generate a new PAT for API authentication.
@@ -97,7 +97,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostPatResponse200
+        Any | PostPatResponse201
     """
 
     return sync_detailed(
@@ -110,7 +110,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: PostPatBody,
-) -> Response[Any | PostPatResponse200]:
+) -> Response[Any | PostPatResponse201]:
     """Create personal access token
 
      Generate a new PAT for API authentication.
@@ -123,7 +123,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostPatResponse200]
+        Response[Any | PostPatResponse201]
     """
 
     kwargs = _get_kwargs(
@@ -139,7 +139,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: PostPatBody,
-) -> Any | PostPatResponse200 | None:
+) -> Any | PostPatResponse201 | None:
     """Create personal access token
 
      Generate a new PAT for API authentication.
@@ -152,7 +152,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostPatResponse200
+        Any | PostPatResponse201
     """
 
     return (

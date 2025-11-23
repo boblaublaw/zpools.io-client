@@ -9,21 +9,21 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.post_zpool_zpool_id_scrub_response_200_detail import PostZpoolZpoolIdScrubResponse200Detail
+    from ..models.post_zpool_response_202_detail import PostZpoolResponse202Detail
 
 
-T = TypeVar("T", bound="PostZpoolZpoolIdScrubResponse200")
+T = TypeVar("T", bound="PostZpoolResponse202")
 
 
 @_attrs_define
-class PostZpoolZpoolIdScrubResponse200:
+class PostZpoolResponse202:
     """
     Attributes:
-        detail (PostZpoolZpoolIdScrubResponse200Detail | Unset):
+        detail (PostZpoolResponse202Detail | Unset):
         message (str | Unset):
     """
 
-    detail: PostZpoolZpoolIdScrubResponse200Detail | Unset = UNSET
+    detail: PostZpoolResponse202Detail | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -46,25 +46,25 @@ class PostZpoolZpoolIdScrubResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.post_zpool_zpool_id_scrub_response_200_detail import PostZpoolZpoolIdScrubResponse200Detail
+        from ..models.post_zpool_response_202_detail import PostZpoolResponse202Detail
 
         d = dict(src_dict)
         _detail = d.pop("detail", UNSET)
-        detail: PostZpoolZpoolIdScrubResponse200Detail | Unset
+        detail: PostZpoolResponse202Detail | Unset
         if isinstance(_detail, Unset):
             detail = UNSET
         else:
-            detail = PostZpoolZpoolIdScrubResponse200Detail.from_dict(_detail)
+            detail = PostZpoolResponse202Detail.from_dict(_detail)
 
         message = d.pop("message", UNSET)
 
-        post_zpool_zpool_id_scrub_response_200 = cls(
+        post_zpool_response_202 = cls(
             detail=detail,
             message=message,
         )
 
-        post_zpool_zpool_id_scrub_response_200.additional_properties = d
-        return post_zpool_zpool_id_scrub_response_200
+        post_zpool_response_202.additional_properties = d
+        return post_zpool_response_202
 
     @property
     def additional_keys(self) -> list[str]:

@@ -5,7 +5,8 @@ import httpx
 
 from ...client import AuthenticatedClient, Client
 from ...models.post_codes_claim_body import PostCodesClaimBody
-from ...models.post_codes_claim_response_200 import PostCodesClaimResponse200
+from ...models.post_codes_claim_response_201 import PostCodesClaimResponse201
+from ...models.post_codes_claim_response_428 import PostCodesClaimResponse428
 from ...types import Response
 
 
@@ -30,15 +31,32 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | PostCodesClaimResponse200:
-    if response.status_code == 200:
-        response_200 = PostCodesClaimResponse200.from_dict(response.json())
+) -> Any | PostCodesClaimResponse201 | PostCodesClaimResponse428:
+    if response.status_code == 201:
+        response_201 = PostCodesClaimResponse201.from_dict(response.json())
 
-        return response_200
+        return response_201
 
     if response.status_code == 400:
         response_400 = cast(Any, None)
         return response_400
+
+    if response.status_code == 409:
+        response_409 = cast(Any, None)
+        return response_409
+
+    if response.status_code == 410:
+        response_410 = cast(Any, None)
+        return response_410
+
+    if response.status_code == 422:
+        response_422 = cast(Any, None)
+        return response_422
+
+    if response.status_code == 428:
+        response_428 = PostCodesClaimResponse428.from_dict(response.json())
+
+        return response_428
 
     response_default = cast(Any, None)
     return response_default
@@ -46,7 +64,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | PostCodesClaimResponse200]:
+) -> Response[Any | PostCodesClaimResponse201 | PostCodesClaimResponse428]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -59,7 +77,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
     body: PostCodesClaimBody,
-) -> Response[Any | PostCodesClaimResponse200]:
+) -> Response[Any | PostCodesClaimResponse201 | PostCodesClaimResponse428]:
     """Redeem credit code
 
      Apply a promotional or gift credit code to account.
@@ -72,7 +90,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostCodesClaimResponse200]
+        Response[Any | PostCodesClaimResponse201 | PostCodesClaimResponse428]
     """
 
     kwargs = _get_kwargs(
@@ -90,7 +108,7 @@ def sync(
     *,
     client: AuthenticatedClient,
     body: PostCodesClaimBody,
-) -> Any | PostCodesClaimResponse200 | None:
+) -> Any | PostCodesClaimResponse201 | PostCodesClaimResponse428 | None:
     """Redeem credit code
 
      Apply a promotional or gift credit code to account.
@@ -103,7 +121,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostCodesClaimResponse200
+        Any | PostCodesClaimResponse201 | PostCodesClaimResponse428
     """
 
     return sync_detailed(
@@ -116,7 +134,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
     body: PostCodesClaimBody,
-) -> Response[Any | PostCodesClaimResponse200]:
+) -> Response[Any | PostCodesClaimResponse201 | PostCodesClaimResponse428]:
     """Redeem credit code
 
      Apply a promotional or gift credit code to account.
@@ -129,7 +147,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | PostCodesClaimResponse200]
+        Response[Any | PostCodesClaimResponse201 | PostCodesClaimResponse428]
     """
 
     kwargs = _get_kwargs(
@@ -145,7 +163,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
     body: PostCodesClaimBody,
-) -> Any | PostCodesClaimResponse200 | None:
+) -> Any | PostCodesClaimResponse201 | PostCodesClaimResponse428 | None:
     """Redeem credit code
 
      Apply a promotional or gift credit code to account.
@@ -158,7 +176,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | PostCodesClaimResponse200
+        Any | PostCodesClaimResponse201 | PostCodesClaimResponse428
     """
 
     return (

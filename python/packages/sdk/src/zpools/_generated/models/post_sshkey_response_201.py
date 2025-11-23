@@ -9,21 +9,21 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.post_codes_claim_response_200_detail import PostCodesClaimResponse200Detail
+    from ..models.post_sshkey_response_201_detail import PostSshkeyResponse201Detail
 
 
-T = TypeVar("T", bound="PostCodesClaimResponse200")
+T = TypeVar("T", bound="PostSshkeyResponse201")
 
 
 @_attrs_define
-class PostCodesClaimResponse200:
+class PostSshkeyResponse201:
     """
     Attributes:
-        detail (PostCodesClaimResponse200Detail | Unset):
+        detail (PostSshkeyResponse201Detail | Unset):
         message (str | Unset):
     """
 
-    detail: PostCodesClaimResponse200Detail | Unset = UNSET
+    detail: PostSshkeyResponse201Detail | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -46,25 +46,25 @@ class PostCodesClaimResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.post_codes_claim_response_200_detail import PostCodesClaimResponse200Detail
+        from ..models.post_sshkey_response_201_detail import PostSshkeyResponse201Detail
 
         d = dict(src_dict)
         _detail = d.pop("detail", UNSET)
-        detail: PostCodesClaimResponse200Detail | Unset
+        detail: PostSshkeyResponse201Detail | Unset
         if isinstance(_detail, Unset):
             detail = UNSET
         else:
-            detail = PostCodesClaimResponse200Detail.from_dict(_detail)
+            detail = PostSshkeyResponse201Detail.from_dict(_detail)
 
         message = d.pop("message", UNSET)
 
-        post_codes_claim_response_200 = cls(
+        post_sshkey_response_201 = cls(
             detail=detail,
             message=message,
         )
 
-        post_codes_claim_response_200.additional_properties = d
-        return post_codes_claim_response_200
+        post_sshkey_response_201.additional_properties = d
+        return post_sshkey_response_201
 
     @property
     def additional_keys(self) -> list[str]:

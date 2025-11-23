@@ -8,41 +8,50 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="PostZpoolZpoolIdScrubResponse200Detail")
+T = TypeVar("T", bound="PostPatResponse201Detail")
 
 
 @_attrs_define
-class PostZpoolZpoolIdScrubResponse200Detail:
+class PostPatResponse201Detail:
     """
     Attributes:
-        job_id (str | Unset):
+        key_id (str | Unset):
+        token (str | Unset): PAT value (only shown once)
     """
 
-    job_id: str | Unset = UNSET
+    key_id: str | Unset = UNSET
+    token: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        job_id = self.job_id
+        key_id = self.key_id
+
+        token = self.token
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if job_id is not UNSET:
-            field_dict["job_id"] = job_id
+        if key_id is not UNSET:
+            field_dict["key_id"] = key_id
+        if token is not UNSET:
+            field_dict["token"] = token
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        job_id = d.pop("job_id", UNSET)
+        key_id = d.pop("key_id", UNSET)
 
-        post_zpool_zpool_id_scrub_response_200_detail = cls(
-            job_id=job_id,
+        token = d.pop("token", UNSET)
+
+        post_pat_response_201_detail = cls(
+            key_id=key_id,
+            token=token,
         )
 
-        post_zpool_zpool_id_scrub_response_200_detail.additional_properties = d
-        return post_zpool_zpool_id_scrub_response_200_detail
+        post_pat_response_201_detail.additional_properties = d
+        return post_pat_response_201_detail
 
     @property
     def additional_keys(self) -> list[str]:

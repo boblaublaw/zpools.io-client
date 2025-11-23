@@ -9,21 +9,21 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.post_pat_response_200_detail import PostPatResponse200Detail
+    from ..models.post_dodo_start_response_201_detail import PostDodoStartResponse201Detail
 
 
-T = TypeVar("T", bound="PostPatResponse200")
+T = TypeVar("T", bound="PostDodoStartResponse201")
 
 
 @_attrs_define
-class PostPatResponse200:
+class PostDodoStartResponse201:
     """
     Attributes:
-        detail (PostPatResponse200Detail | Unset):
+        detail (PostDodoStartResponse201Detail | Unset):
         message (str | Unset):
     """
 
-    detail: PostPatResponse200Detail | Unset = UNSET
+    detail: PostDodoStartResponse201Detail | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -46,25 +46,25 @@ class PostPatResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.post_pat_response_200_detail import PostPatResponse200Detail
+        from ..models.post_dodo_start_response_201_detail import PostDodoStartResponse201Detail
 
         d = dict(src_dict)
         _detail = d.pop("detail", UNSET)
-        detail: PostPatResponse200Detail | Unset
+        detail: PostDodoStartResponse201Detail | Unset
         if isinstance(_detail, Unset):
             detail = UNSET
         else:
-            detail = PostPatResponse200Detail.from_dict(_detail)
+            detail = PostDodoStartResponse201Detail.from_dict(_detail)
 
         message = d.pop("message", UNSET)
 
-        post_pat_response_200 = cls(
+        post_dodo_start_response_201 = cls(
             detail=detail,
             message=message,
         )
 
-        post_pat_response_200.additional_properties = d
-        return post_pat_response_200
+        post_dodo_start_response_201.additional_properties = d
+        return post_dodo_start_response_201
 
     @property
     def additional_keys(self) -> list[str]:

@@ -1,6 +1,6 @@
 # zpools.io Python Workspace
 
-This directory contains the Python SDK and CLI for zpools.io.
+This directory contains the Python SDK and CLI (`zpcli`) for zpools.io.
 
 ## Prerequisites
 
@@ -12,51 +12,54 @@ To install `uv`:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-## Setup
+After installation, ensure `~/.local/bin` is in your PATH:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+# Add to ~/.bashrc or ~/.zshrc to make permanent
+```
 
-1.  **Sync the workspace:**
-    This creates the virtual environment and installs dependencies.
-    ```bash
-    cd python
-    uv sync
-    ```
+## Installation (Recommended)
 
-2.  **Install packages in editable mode:**
-    This links the local source code to the environment.
-    ```bash
-    uv pip install -e packages/sdk -e packages/cli
-    ```
-
-## Running the CLI
-
-You can run the CLI using `uv run`:
+Install `zpcli` as a global command using UV tools:
 
 ```bash
-# Run the 'hello' command
-uv run zpools hello
-
-# View help
-uv run zpools --help
+cd python
+uv tool install --editable packages/cli
 ```
+
+This installs `zpcli` in editable mode:
+- ✅ Available from any directory
+- ✅ Code changes reflected immediately (no reinstall needed)
+- ✅ Tab completion works
+- ✅ Only reinstall if you change dependencies
+
+After installation:
+```bash
+# Enable tab completion
+zpcli --install-completion
+
+# Restart your shell, then use zpcli from anywhere
+zpcli --help
+zpcli pat list
+zpcli billing balance
+```
+
+## Development Setup (Alternative)
+
+If you prefer using `uv run` instead of installing globally:
+
+```bash
+cd python
+uv sync
+
+# Run commands with uv run
+uv run zpcli --help
+uv run zpcli pat list
+```
+
+**Note**: Tab completion doesn't work with `uv run zpcli`. Use the installation method above for tab completion.
 
 ## Development
 
 *   **SDK Source:** `packages/sdk/src/zpools`
 *   **CLI Source:** `packages/cli/src/zpools_cli`
-*   **OpenAPI Spec:** `../spec/stage-definition.yaml`
-
-### Regenerating the SDK
-If the OpenAPI spec changes, regenerate the client code:
-
-```bash
-# From the repo root
-uvx openapi-python-client generate \
-  --path spec/stage-definition.yaml \
-  --output-path temp_gen \
-  --overwrite
-
-# Move the generated code (adjust paths as needed)
-rm -rf python/packages/sdk/src/zpools/_generated
-mv temp_gen/zpools_api_prod_client python/packages/sdk/src/zpools/_generated
-rm -rf temp_gen
-```

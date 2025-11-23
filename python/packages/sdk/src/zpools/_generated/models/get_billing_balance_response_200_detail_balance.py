@@ -17,64 +17,103 @@ T = TypeVar("T", bound="GetBillingBalanceResponse200DetailBalance")
 class GetBillingBalanceResponse200DetailBalance:
     """
     Attributes:
-        balance_cents (int | Unset): Balance in cents
-        currency (str | Unset): Currency code (USD)
-        last_updated (datetime.datetime | Unset):
-        username (str | Unset):
+        balance_usd (float | Unset): Balance in USD
+        customer (str | Unset): Customer username
+        first_transaction (datetime.datetime | Unset): First transaction timestamp
+        last_reconciliation (datetime.datetime | Unset): Last reconciliation timestamp
+        last_transaction (datetime.datetime | Unset): Last transaction timestamp
+        last_update_ts (datetime.datetime | Unset): Last update timestamp
     """
 
-    balance_cents: int | Unset = UNSET
-    currency: str | Unset = UNSET
-    last_updated: datetime.datetime | Unset = UNSET
-    username: str | Unset = UNSET
+    balance_usd: float | Unset = UNSET
+    customer: str | Unset = UNSET
+    first_transaction: datetime.datetime | Unset = UNSET
+    last_reconciliation: datetime.datetime | Unset = UNSET
+    last_transaction: datetime.datetime | Unset = UNSET
+    last_update_ts: datetime.datetime | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        balance_cents = self.balance_cents
+        balance_usd = self.balance_usd
 
-        currency = self.currency
+        customer = self.customer
 
-        last_updated: str | Unset = UNSET
-        if not isinstance(self.last_updated, Unset):
-            last_updated = self.last_updated.isoformat()
+        first_transaction: str | Unset = UNSET
+        if not isinstance(self.first_transaction, Unset):
+            first_transaction = self.first_transaction.isoformat()
 
-        username = self.username
+        last_reconciliation: str | Unset = UNSET
+        if not isinstance(self.last_reconciliation, Unset):
+            last_reconciliation = self.last_reconciliation.isoformat()
+
+        last_transaction: str | Unset = UNSET
+        if not isinstance(self.last_transaction, Unset):
+            last_transaction = self.last_transaction.isoformat()
+
+        last_update_ts: str | Unset = UNSET
+        if not isinstance(self.last_update_ts, Unset):
+            last_update_ts = self.last_update_ts.isoformat()
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if balance_cents is not UNSET:
-            field_dict["balance_cents"] = balance_cents
-        if currency is not UNSET:
-            field_dict["currency"] = currency
-        if last_updated is not UNSET:
-            field_dict["last_updated"] = last_updated
-        if username is not UNSET:
-            field_dict["username"] = username
+        if balance_usd is not UNSET:
+            field_dict["balance_usd"] = balance_usd
+        if customer is not UNSET:
+            field_dict["customer"] = customer
+        if first_transaction is not UNSET:
+            field_dict["first_transaction"] = first_transaction
+        if last_reconciliation is not UNSET:
+            field_dict["last_reconciliation"] = last_reconciliation
+        if last_transaction is not UNSET:
+            field_dict["last_transaction"] = last_transaction
+        if last_update_ts is not UNSET:
+            field_dict["last_update_ts"] = last_update_ts
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        balance_cents = d.pop("balance_cents", UNSET)
+        balance_usd = d.pop("balance_usd", UNSET)
 
-        currency = d.pop("currency", UNSET)
+        customer = d.pop("customer", UNSET)
 
-        _last_updated = d.pop("last_updated", UNSET)
-        last_updated: datetime.datetime | Unset
-        if isinstance(_last_updated, Unset):
-            last_updated = UNSET
+        _first_transaction = d.pop("first_transaction", UNSET)
+        first_transaction: datetime.datetime | Unset
+        if isinstance(_first_transaction, Unset):
+            first_transaction = UNSET
         else:
-            last_updated = isoparse(_last_updated)
+            first_transaction = isoparse(_first_transaction)
 
-        username = d.pop("username", UNSET)
+        _last_reconciliation = d.pop("last_reconciliation", UNSET)
+        last_reconciliation: datetime.datetime | Unset
+        if isinstance(_last_reconciliation, Unset):
+            last_reconciliation = UNSET
+        else:
+            last_reconciliation = isoparse(_last_reconciliation)
+
+        _last_transaction = d.pop("last_transaction", UNSET)
+        last_transaction: datetime.datetime | Unset
+        if isinstance(_last_transaction, Unset):
+            last_transaction = UNSET
+        else:
+            last_transaction = isoparse(_last_transaction)
+
+        _last_update_ts = d.pop("last_update_ts", UNSET)
+        last_update_ts: datetime.datetime | Unset
+        if isinstance(_last_update_ts, Unset):
+            last_update_ts = UNSET
+        else:
+            last_update_ts = isoparse(_last_update_ts)
 
         get_billing_balance_response_200_detail_balance = cls(
-            balance_cents=balance_cents,
-            currency=currency,
-            last_updated=last_updated,
-            username=username,
+            balance_usd=balance_usd,
+            customer=customer,
+            first_transaction=first_transaction,
+            last_reconciliation=last_reconciliation,
+            last_transaction=last_transaction,
+            last_update_ts=last_update_ts,
         )
 
         get_billing_balance_response_200_detail_balance.additional_properties = d

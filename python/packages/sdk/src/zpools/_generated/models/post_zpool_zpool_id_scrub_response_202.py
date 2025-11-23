@@ -9,21 +9,21 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.post_dodo_start_response_200_detail import PostDodoStartResponse200Detail
+    from ..models.post_zpool_zpool_id_scrub_response_202_detail import PostZpoolZpoolIdScrubResponse202Detail
 
 
-T = TypeVar("T", bound="PostDodoStartResponse200")
+T = TypeVar("T", bound="PostZpoolZpoolIdScrubResponse202")
 
 
 @_attrs_define
-class PostDodoStartResponse200:
+class PostZpoolZpoolIdScrubResponse202:
     """
     Attributes:
-        detail (PostDodoStartResponse200Detail | Unset):
+        detail (PostZpoolZpoolIdScrubResponse202Detail | Unset):
         message (str | Unset):
     """
 
-    detail: PostDodoStartResponse200Detail | Unset = UNSET
+    detail: PostZpoolZpoolIdScrubResponse202Detail | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -46,25 +46,25 @@ class PostDodoStartResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.post_dodo_start_response_200_detail import PostDodoStartResponse200Detail
+        from ..models.post_zpool_zpool_id_scrub_response_202_detail import PostZpoolZpoolIdScrubResponse202Detail
 
         d = dict(src_dict)
         _detail = d.pop("detail", UNSET)
-        detail: PostDodoStartResponse200Detail | Unset
+        detail: PostZpoolZpoolIdScrubResponse202Detail | Unset
         if isinstance(_detail, Unset):
             detail = UNSET
         else:
-            detail = PostDodoStartResponse200Detail.from_dict(_detail)
+            detail = PostZpoolZpoolIdScrubResponse202Detail.from_dict(_detail)
 
         message = d.pop("message", UNSET)
 
-        post_dodo_start_response_200 = cls(
+        post_zpool_zpool_id_scrub_response_202 = cls(
             detail=detail,
             message=message,
         )
 
-        post_dodo_start_response_200.additional_properties = d
-        return post_dodo_start_response_200
+        post_zpool_zpool_id_scrub_response_202.additional_properties = d
+        return post_zpool_zpool_id_scrub_response_202
 
     @property
     def additional_keys(self) -> list[str]:

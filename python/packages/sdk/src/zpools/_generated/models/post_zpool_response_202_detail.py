@@ -8,50 +8,50 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="PostDodoStartResponse200Detail")
+T = TypeVar("T", bound="PostZpoolResponse202Detail")
 
 
 @_attrs_define
-class PostDodoStartResponse200Detail:
+class PostZpoolResponse202Detail:
     """
     Attributes:
-        payment_url (str | Unset): URL to complete payment
-        session_id (str | Unset):
+        job_id (str | Unset): Job ID for tracking creation progress
+        zpool_id (str | Unset):
     """
 
-    payment_url: str | Unset = UNSET
-    session_id: str | Unset = UNSET
+    job_id: str | Unset = UNSET
+    zpool_id: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        payment_url = self.payment_url
+        job_id = self.job_id
 
-        session_id = self.session_id
+        zpool_id = self.zpool_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if payment_url is not UNSET:
-            field_dict["payment_url"] = payment_url
-        if session_id is not UNSET:
-            field_dict["session_id"] = session_id
+        if job_id is not UNSET:
+            field_dict["job_id"] = job_id
+        if zpool_id is not UNSET:
+            field_dict["zpool_id"] = zpool_id
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        payment_url = d.pop("payment_url", UNSET)
+        job_id = d.pop("job_id", UNSET)
 
-        session_id = d.pop("session_id", UNSET)
+        zpool_id = d.pop("zpool_id", UNSET)
 
-        post_dodo_start_response_200_detail = cls(
-            payment_url=payment_url,
-            session_id=session_id,
+        post_zpool_response_202_detail = cls(
+            job_id=job_id,
+            zpool_id=zpool_id,
         )
 
-        post_dodo_start_response_200_detail.additional_properties = d
-        return post_dodo_start_response_200_detail
+        post_zpool_response_202_detail.additional_properties = d
+        return post_zpool_response_202_detail
 
     @property
     def additional_keys(self) -> list[str]:

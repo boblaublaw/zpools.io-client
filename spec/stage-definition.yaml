@@ -121,16 +121,27 @@ paths:
                     properties:
                       balance:
                         properties:
-                          balance_cents:
-                            description: Balance in cents
-                            type: integer
-                          currency:
-                            description: Currency code (USD)
+                          balance_usd:
+                            description: Balance in USD
+                            type: number
+                          customer:
+                            description: Customer username
                             type: string
-                          last_updated:
+                          first_transaction:
+                            description: First transaction timestamp
                             format: date-time
                             type: string
-                          username:
+                          last_reconciliation:
+                            description: Last reconciliation timestamp
+                            format: date-time
+                            type: string
+                          last_transaction:
+                            description: Last transaction timestamp
+                            format: date-time
+                            type: string
+                          last_update_ts:
+                            description: Last update timestamp
+                            format: date-time
                             type: string
                         type: object
                     type: object
@@ -162,19 +173,32 @@ paths:
                 properties:
                   detail:
                     properties:
-                      entries:
+                      items:
                         items:
                           properties:
-                            amount_cents:
-                              description: Amount in cents (negative for charges)
-                              type: integer
-                            balance_cents:
-                              description: Running balance after transaction
-                              type: integer
-                            description:
+                            amount_usd:
+                              description: Total amount in USD
+                              type: number
+                            event_type:
+                              description: Type of event (e.g., usage, credit, payment)
                               type: string
-                            timestamp:
-                              format: date-time
+                            markup_bps:
+                              description: Markup in basis points
+                              type: number
+                            markup_usd:
+                              description: Markup amount in USD
+                              type: number
+                            note:
+                              description: Additional notes
+                              type: string
+                            source:
+                              description: Source of the charge or credit
+                              type: string
+                            ts:
+                              description: Timestamp of the ledger entry
+                              type: string
+                            usage_date:
+                              description: Date of usage (YYYY-MM-DD)
                               type: string
                           type: object
                         type: array
@@ -225,15 +249,36 @@ paths:
       responses:
         default:
           description: Default response for POST /codes/claim
-        '200':
+        '201':
           content:
             application/json:
               schema:
                 properties:
                   detail:
                     properties:
-                      amount_cents:
-                        description: Credits added
+                      balance_after_cents:
+                        description: Balance after claim
+                        type: integer
+                      claim:
+                        properties:
+                          amount_cents:
+                            description: Credits added in cents
+                            type: integer
+                          code:
+                            description: Code that was claimed
+                            type: string
+                          code_type:
+                            description: Type of code
+                            type: string
+                          joined_group:
+                            description: Group joined (if applicable)
+                            type: string
+                        type: object
+                      dev_mode:
+                        description: Whether in development mode
+                        type: boolean
+                      pool_remaining_cents:
+                        description: Remaining pool credits
                         type: integer
                     type: object
                   message:
@@ -241,7 +286,28 @@ paths:
                 type: object
           description: Code redeemed successfully
         '400':
-          description: Invalid or already used code
+          description: Invalid or malformed request
+        '409':
+          description: Code already claimed
+        '410':
+          description: Code exhausted or disabled
+        '422':
+          description: Invalid code
+        '428':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      tos_url:
+                        description: URL of terms that must be accepted
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Terms acceptance required
       security:
       - CognitoAuthorizer: []
       x-amazon-apigateway-integration:
@@ -264,6 +330,18 @@ paths:
                 code:
                   description: Credit code to redeem
                   type: string
+                tos:
+                  description: Terms of Service acceptance (required if code requires
+                    ToS)
+                  properties:
+                    accepted_at:
+                      description: ISO8601 timestamp of acceptance
+                      format: date-time
+                      type: string
+                    url:
+                      description: ToS URL being accepted
+                      type: string
+                  type: object
               required:
               - code
               type: object
@@ -273,17 +351,17 @@ paths:
       responses:
         default:
           description: Default response for POST /dodo/start
-        '200':
+        '201':
           content:
             application/json:
               schema:
                 properties:
                   detail:
                     properties:
-                      payment_url:
+                      payment_link:
                         description: URL to complete payment
                         type: string
-                      session_id:
+                      purchase_id:
                         type: string
                     type: object
                   message:
@@ -306,15 +384,16 @@ paths:
         content:
           application/json:
             example:
-              amount_cents: 5000
+              quantity: 10
             schema:
               properties:
-                amount_cents:
-                  description: Payment amount in cents
-                  minimum: 100
+                quantity:
+                  description: Payment amount in dollars
+                  maximum: 100
+                  minimum: 1
                   type: integer
               required:
-              - amount_cents
+              - quantity
               type: object
         required: true
   /sshkey:
@@ -365,7 +444,7 @@ paths:
       responses:
         default:
           description: Default response for POST /sshkey
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -456,20 +535,51 @@ paths:
                 properties:
                   detail:
                     properties:
-                      tokens:
+                      items:
                         items:
                           properties:
                             created_at:
+                              description: Creation timestamp
+                              format: date-time
+                              type: string
+                            expiry_at:
+                              description: Soft expiry timestamp
+                              format: date-time
+                              type: string
+                            hard_expiry_at:
+                              description: Hard expiry timestamp
                               format: date-time
                               type: string
                             key_id:
+                              description: Unique key identifier
                               type: string
-                            last_used:
+                            label:
+                              description: Token label
+                              type: string
+                            last_ip:
+                              description: Last IP address used from
+                              type: string
+                            last_ua:
+                              description: Last user agent
+                              type: string
+                            last_used_at:
+                              description: Last usage timestamp
                               format: date-time
                               type: string
-                            name:
-                              description: Token name/description
+                            scopes:
+                              description: List of scopes
+                              items:
+                                type: string
+                              type: array
+                            status:
+                              description: Token status (active, revoked, expired)
                               type: string
+                            token_ver:
+                              description: Token version
+                              type: integer
+                            usage_count:
+                              description: Number of times used
+                              type: integer
                           type: object
                         type: array
                     type: object
@@ -493,7 +603,7 @@ paths:
       responses:
         default:
           description: Default response for POST /pat
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -526,14 +636,31 @@ paths:
         content:
           application/json:
             example:
-              name: CLI Access Token
+              label: CLI Access Token
+              scopes:
+              - zpool
+              - job
+              - sshkey
             schema:
               properties:
-                name:
-                  description: Token name for identification
+                expiry:
+                  description: Optional soft expiry date (YYYY-MM-DD)
+                  format: date
+                  type: string
+                label:
+                  description: Token label for identification
+                  type: string
+                scopes:
+                  description: Optional list of scopes (e.g., 'pat', 'sshkey', 'job',
+                    'zpool')
+                  items:
+                    type: string
+                  type: array
+                tenant_id:
+                  description: Optional tenant ID for multi-tenant scenarios
                   type: string
               required:
-              - name
+              - label
               type: object
         required: true
   /pat/{key_id}:
@@ -622,7 +749,7 @@ paths:
       responses:
         default:
           description: Default response for POST /zpool
-        '200':
+        '202':
           content:
             application/json:
               schema:
@@ -682,7 +809,7 @@ paths:
       responses:
         default:
           description: Default response for POST /zpool/{zpool_id}/modify
-        '200':
+        '202':
           description: Modification initiated
         '400':
           description: Invalid modification request
@@ -739,7 +866,7 @@ paths:
       responses:
         default:
           description: Default response for POST /zpool/{zpool_id}/scrub
-        '200':
+        '202':
           content:
             application/json:
               schema:

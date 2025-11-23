@@ -9,21 +9,21 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.post_sshkey_response_200_detail import PostSshkeyResponse200Detail
+    from ..models.post_pat_response_201_detail import PostPatResponse201Detail
 
 
-T = TypeVar("T", bound="PostSshkeyResponse200")
+T = TypeVar("T", bound="PostPatResponse201")
 
 
 @_attrs_define
-class PostSshkeyResponse200:
+class PostPatResponse201:
     """
     Attributes:
-        detail (PostSshkeyResponse200Detail | Unset):
+        detail (PostPatResponse201Detail | Unset):
         message (str | Unset):
     """
 
-    detail: PostSshkeyResponse200Detail | Unset = UNSET
+    detail: PostPatResponse201Detail | Unset = UNSET
     message: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -46,25 +46,25 @@ class PostSshkeyResponse200:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.post_sshkey_response_200_detail import PostSshkeyResponse200Detail
+        from ..models.post_pat_response_201_detail import PostPatResponse201Detail
 
         d = dict(src_dict)
         _detail = d.pop("detail", UNSET)
-        detail: PostSshkeyResponse200Detail | Unset
+        detail: PostPatResponse201Detail | Unset
         if isinstance(_detail, Unset):
             detail = UNSET
         else:
-            detail = PostSshkeyResponse200Detail.from_dict(_detail)
+            detail = PostPatResponse201Detail.from_dict(_detail)
 
         message = d.pop("message", UNSET)
 
-        post_sshkey_response_200 = cls(
+        post_pat_response_201 = cls(
             detail=detail,
             message=message,
         )
 
-        post_sshkey_response_200.additional_properties = d
-        return post_sshkey_response_200
+        post_pat_response_201.additional_properties = d
+        return post_pat_response_201
 
     @property
     def additional_keys(self) -> list[str]:

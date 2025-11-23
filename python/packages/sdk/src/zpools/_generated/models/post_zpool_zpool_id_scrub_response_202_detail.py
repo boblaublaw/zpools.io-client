@@ -8,41 +8,41 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="PostSshkeyResponse200Detail")
+T = TypeVar("T", bound="PostZpoolZpoolIdScrubResponse202Detail")
 
 
 @_attrs_define
-class PostSshkeyResponse200Detail:
+class PostZpoolZpoolIdScrubResponse202Detail:
     """
     Attributes:
-        pubkey_id (str | Unset): Generated key ID
+        job_id (str | Unset):
     """
 
-    pubkey_id: str | Unset = UNSET
+    job_id: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        pubkey_id = self.pubkey_id
+        job_id = self.job_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if pubkey_id is not UNSET:
-            field_dict["pubkey_id"] = pubkey_id
+        if job_id is not UNSET:
+            field_dict["job_id"] = job_id
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        pubkey_id = d.pop("pubkey_id", UNSET)
+        job_id = d.pop("job_id", UNSET)
 
-        post_sshkey_response_200_detail = cls(
-            pubkey_id=pubkey_id,
+        post_zpool_zpool_id_scrub_response_202_detail = cls(
+            job_id=job_id,
         )
 
-        post_sshkey_response_200_detail.additional_properties = d
-        return post_sshkey_response_200_detail
+        post_zpool_zpool_id_scrub_response_202_detail.additional_properties = d
+        return post_zpool_zpool_id_scrub_response_202_detail
 
     @property
     def additional_keys(self) -> list[str]:

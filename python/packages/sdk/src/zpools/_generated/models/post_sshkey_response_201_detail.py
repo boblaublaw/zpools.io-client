@@ -6,43 +6,43 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="PostDodoStartBody")
+from ..types import UNSET, Unset
+
+T = TypeVar("T", bound="PostSshkeyResponse201Detail")
 
 
 @_attrs_define
-class PostDodoStartBody:
+class PostSshkeyResponse201Detail:
     """
     Attributes:
-        quantity (int): Payment amount in dollars
+        pubkey_id (str | Unset): Generated key ID
     """
 
-    quantity: int
+    pubkey_id: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        quantity = self.quantity
+        pubkey_id = self.pubkey_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "quantity": quantity,
-            }
-        )
+        field_dict.update({})
+        if pubkey_id is not UNSET:
+            field_dict["pubkey_id"] = pubkey_id
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        quantity = d.pop("quantity")
+        pubkey_id = d.pop("pubkey_id", UNSET)
 
-        post_dodo_start_body = cls(
-            quantity=quantity,
+        post_sshkey_response_201_detail = cls(
+            pubkey_id=pubkey_id,
         )
 
-        post_dodo_start_body.additional_properties = d
-        return post_dodo_start_body
+        post_sshkey_response_201_detail.additional_properties = d
+        return post_sshkey_response_201_detail
 
     @property
     def additional_keys(self) -> list[str]:

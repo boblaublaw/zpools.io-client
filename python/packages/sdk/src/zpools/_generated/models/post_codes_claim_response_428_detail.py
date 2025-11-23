@@ -8,50 +8,41 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="PostZpoolResponse200Detail")
+T = TypeVar("T", bound="PostCodesClaimResponse428Detail")
 
 
 @_attrs_define
-class PostZpoolResponse200Detail:
+class PostCodesClaimResponse428Detail:
     """
     Attributes:
-        job_id (str | Unset): Job ID for tracking creation progress
-        zpool_id (str | Unset):
+        tos_url (str | Unset): URL of terms that must be accepted
     """
 
-    job_id: str | Unset = UNSET
-    zpool_id: str | Unset = UNSET
+    tos_url: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        job_id = self.job_id
-
-        zpool_id = self.zpool_id
+        tos_url = self.tos_url
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if job_id is not UNSET:
-            field_dict["job_id"] = job_id
-        if zpool_id is not UNSET:
-            field_dict["zpool_id"] = zpool_id
+        if tos_url is not UNSET:
+            field_dict["tos_url"] = tos_url
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        job_id = d.pop("job_id", UNSET)
+        tos_url = d.pop("tos_url", UNSET)
 
-        zpool_id = d.pop("zpool_id", UNSET)
-
-        post_zpool_response_200_detail = cls(
-            job_id=job_id,
-            zpool_id=zpool_id,
+        post_codes_claim_response_428_detail = cls(
+            tos_url=tos_url,
         )
 
-        post_zpool_response_200_detail.additional_properties = d
-        return post_zpool_response_200_detail
+        post_codes_claim_response_428_detail.additional_properties = d
+        return post_codes_claim_response_428_detail
 
     @property
     def additional_keys(self) -> list[str]:

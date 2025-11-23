@@ -14,3 +14,6 @@ build/
 
 # Local config
 zpoolrc
+
+# SDK regeneration backup
+packages/sdk/src/zpools/_generated.backup/

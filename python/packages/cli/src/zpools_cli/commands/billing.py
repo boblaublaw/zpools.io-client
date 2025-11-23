@@ -2,7 +2,6 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools import ZPoolsClient
 from zpools._generated.api.billing import (
     get_billing_balance,
     get_billing_ledger,
@@ -14,7 +13,7 @@ from zpools._generated.models.post_dodo_start_body import PostDodoStartBody
 from zpools._generated.types import UNSET
 import datetime
 
-app = typer.Typer(help="Manage billing and payments")
+app = typer.Typer(help="Manage billing and payments", no_args_is_help=True)
 console = Console()
 
 @app.command("balance")
@@ -58,7 +57,7 @@ def get_ledger(
 ):
     """View billing transaction history."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         # Parse dates if provided
@@ -150,7 +149,7 @@ def claim_code(
 ):
     """Redeem a credit code."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         body = PostCodesClaimBody(code=code)
@@ -180,7 +179,7 @@ def start_payment(
 ):
     """Start a payment session to add credits."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         # Validate amount (API accepts 1-100)

@@ -711,21 +711,46 @@ paths:
                   detail:
                     properties:
                       zpools:
-                        items:
+                        additionalProperties:
                           properties:
-                            created_at:
+                            CreateTime:
                               format: date-time
                               type: string
-                            name:
+                            LastScrubTime:
+                              format: date-time
                               type: string
-                            size_gb:
+                            Username:
+                              type: string
+                            VolumeCount:
                               type: integer
-                            status:
-                              type: string
-                            zpool_id:
-                              type: string
+                            Volumes:
+                              items:
+                                properties:
+                                  CanModifyNow:
+                                    type: boolean
+                                  CreateTime:
+                                    format: date-time
+                                    type: string
+                                  ModLastTime:
+                                    format: date-time
+                                    type: string
+                                  ModProgress:
+                                    type: integer
+                                  ModState:
+                                    type: string
+                                  Size:
+                                    type: integer
+                                  State:
+                                    type: string
+                                  VolumeId:
+                                    type: string
+                                  VolumeType:
+                                    type: string
+                                type: object
+                              type: array
                           type: object
-                        type: array
+                        description: Dictionary of zpools keyed by zpool_id
+                        type: object
                     type: object
                   message:
                     type: string

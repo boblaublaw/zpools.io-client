@@ -3,7 +3,7 @@ import json
 import datetime
 from rich.console import Console
 from rich.table import Table
-from zpools import ZPoolsClient
+from zpools_cli.utils import get_authenticated_client
 from zpools._generated.api.personal_access_tokens import (
     get_pat,
     post_pat,
@@ -12,7 +12,7 @@ from zpools._generated.api.personal_access_tokens import (
 from zpools._generated.models.post_pat_body import PostPatBody
 from zpools._generated.types import UNSET
 
-app = typer.Typer(help="Manage Personal Access Tokens")
+app = typer.Typer(help="Manage Personal Access Tokens", no_args_is_help=True)
 console = Console()
 
 @app.command("list")
@@ -21,7 +21,7 @@ def list_pats(
 ):
     """List all Personal Access Tokens."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_pat.sync_detailed(client=auth_client)
@@ -77,7 +77,7 @@ def create_pat(
 ):
     """Create a new Personal Access Token."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         # Build the body with optional fields
@@ -128,7 +128,7 @@ def revoke_pat(
             return
 
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = delete_pat_key_id.sync_detailed(key_id=key_id, client=auth_client)

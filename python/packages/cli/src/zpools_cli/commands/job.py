@@ -2,7 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools import ZPoolsClient
+from zpools_cli.utils import get_authenticated_client
 from zpools._generated.api.jobs import (
     get_jobs,
     get_job_job_id,
@@ -10,7 +10,7 @@ from zpools._generated.api.jobs import (
 )
 from zpools._generated.types import UNSET
 
-app = typer.Typer(help="Manage background jobs")
+app = typer.Typer(help="Manage background jobs", no_args_is_help=True)
 console = Console()
 
 @app.command("list")
@@ -19,7 +19,7 @@ def list_jobs(
 ):
     """List all background jobs."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_jobs.sync_detailed(client=auth_client)
@@ -42,17 +42,33 @@ def list_jobs(
             table.add_column("Message", style="white")
 
             for job in jobs:
-                status_val = job.status.value if job.status is not UNSET else "Unknown"
-                message = job.message if job.message is not UNSET else ""
+                # API returns fields not in schema - they're in additional_properties
+                job_id = job.job_id if job.job_id is not UNSET else ""
+                
+                # Try schema field first, then additional_properties
+                operation = job.operation if job.operation is not UNSET else job.additional_properties.get('job_type', "")
+                
+                # Status is in current_status.state in additional_properties
+                current_status = job.additional_properties.get('current_status', {})
+                if isinstance(current_status, dict):
+                    status_val = current_status.get('state', 'Unknown')
+                    message = current_status.get('message', '')
+                else:
+                    # Fallback to schema status
+                    status_val = job.status.value if job.status is not UNSET else "Unknown"
+                    message = ""
+                
+                created_at = str(job.created_at) if job.created_at is not UNSET else ""
+                
                 # Truncate message if too long
                 if len(message) > 50:
                     message = message[:47] + "..."
                 
                 table.add_row(
-                    job.job_id,
-                    job.operation,
+                    job_id,
+                    operation,
                     status_val,
-                    str(job.created_at),
+                    created_at,
                     message
                 )
             console.print(table)
@@ -69,7 +85,7 @@ def get_job(
 ):
     """Get details of a specific job."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_job_job_id.sync_detailed(job_id=job_id, client=auth_client)
@@ -111,7 +127,7 @@ def job_history(
 ):
     """Get history of a specific job."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_job_job_id_history.sync_detailed(job_id=job_id, client=auth_client)

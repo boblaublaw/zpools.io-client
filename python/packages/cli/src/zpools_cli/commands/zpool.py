@@ -2,7 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools import ZPoolsClient
+from zpools_cli.utils import get_authenticated_client
 from zpools._generated.api.zpools import (
     get_zpools,
     post_zpool,
@@ -17,7 +17,7 @@ from zpools._generated.models.post_zpool_zpool_id_modify_body import PostZpoolZp
 from zpools._generated.models.post_zpool_zpool_id_modify_body_volume_type import PostZpoolZpoolIdModifyBodyVolumeType
 from zpools._generated.types import UNSET
 
-app = typer.Typer(help="Manage ZFS pools")
+app = typer.Typer(help="Manage ZFS pools", no_args_is_help=True)
 console = Console()
 
 @app.command("list")
@@ -26,37 +26,91 @@ def list_zpools(
 ):
     """List all ZPools."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_zpools.sync_detailed(client=auth_client)
         
         if response.status_code == 200:
             if json_output:
-                print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
+                # Convert response to dict safely, handling nested objects
+                try:
+                    result = response.parsed.to_dict()
+                    print(json.dumps(result, indent=2, default=str))
+                except Exception as e:
+                    # Fallback: manually build the dict structure
+                    zpools_list = []
+                    for pool in response.parsed.detail.zpools:
+                        pool_dict = {
+                            'zpool_id': pool.zpool_id if pool.zpool_id is not UNSET else None,
+                            'name': pool.name if pool.name is not UNSET else None,
+                            'size_gb': pool.size_gb if pool.size_gb is not UNSET else None,
+                            'status': pool.status if pool.status is not UNSET else None,
+                            'created_at': str(pool.created_at) if pool.created_at is not UNSET else None,
+                        }
+                        pool_dict.update(pool.additional_properties)
+                        zpools_list.append(pool_dict)
+                    print(json.dumps({'detail': {'zpools': zpools_list}, 'message': response.parsed.message}, indent=2, default=str))
                 return
 
             zpools = response.parsed.detail.zpools
-            if not zpools:
+            if not zpools or not zpools.additional_properties:
                 console.print("No ZPools found.")
                 return
 
-            table = Table(title="Your ZPools")
-            table.add_column("ID", style="cyan")
-            table.add_column("Name", style="magenta")
-            table.add_column("Size (GiB)", style="green")
-            table.add_column("Volume Type", style="yellow")
-            table.add_column("Status", style="blue")
-
-            for pool in zpools:
-                table.add_row(
-                    pool.zpool_id,
-                    pool.name,
-                    str(pool.size_gb),
-                    pool.additional_properties.get("volume_type", "N/A"),
-                    pool.status
-                )
-            console.print(table)
+            # Display zpools - iterate and show each with its volumes
+            for zpool_id, pool in zpools.additional_properties.items():
+                # Get zpool-level info from SDK attributes
+                username = pool.username if pool.username is not UNSET else 'N/A'
+                volume_count = pool.volume_count if pool.volume_count is not UNSET else 0
+                create_time = pool.create_time if pool.create_time is not UNSET else None
+                last_scrub = pool.last_scrub_time if pool.last_scrub_time is not UNSET else None
+                
+                # Format dates
+                create_time_str = create_time.strftime('%Y-%m-%d') if create_time else 'N/A'
+                last_scrub_str = last_scrub.strftime('%Y-%m-%d') if last_scrub else 'Never'
+                
+                console.print(f"\n[bold cyan]ZPool:[/bold cyan] {zpool_id}")
+                console.print(f"  User: {username}  |  Volumes: {volume_count}  |  Created: {create_time_str}  |  Last Scrub: {last_scrub_str}")
+                
+                # Get volumes from SDK attribute
+                volumes = pool.volumes if pool.volumes is not UNSET else []
+                
+                if not volumes:
+                    console.print("  [yellow]No volumes found[/yellow]")
+                    continue
+                
+                # Create table for this zpool's volumes
+                vol_table = Table(show_header=True, box=None, padding=(0, 2))
+                vol_table.add_column("Volume ID", style="dim")
+                vol_table.add_column("Size (GiB)", style="green")
+                vol_table.add_column("Type", style="magenta")
+                vol_table.add_column("State", style="yellow")
+                vol_table.add_column("Mod State", style="blue")
+                vol_table.add_column("Mod %", style="bright_blue")
+                vol_table.add_column("Can Modify", style="white")
+                
+                for vol in volumes:
+                    # Access SDK model attributes or additional_properties
+                    vol_id = vol.volume_id if vol.volume_id is not UNSET else vol.additional_properties.get('VolumeId', 'N/A')
+                    size = vol.size if vol.size is not UNSET else vol.additional_properties.get('Size', 'N/A')
+                    vol_type = vol.volume_type if vol.volume_type is not UNSET else vol.additional_properties.get('VolumeType', 'N/A')
+                    state = vol.state if vol.state is not UNSET else vol.additional_properties.get('State', 'N/A')
+                    mod_state = vol.mod_state if vol.mod_state is not UNSET else vol.additional_properties.get('ModState', 'N/A')
+                    mod_progress = vol.mod_progress if vol.mod_progress is not UNSET else vol.additional_properties.get('ModProgress', 'N/A')
+                    can_modify = vol.can_modify_now if vol.can_modify_now is not UNSET else vol.additional_properties.get('CanModifyNow', False)
+                    
+                    vol_table.add_row(
+                        vol_id,
+                        str(size),
+                        str(vol_type),
+                        state,
+                        mod_state,
+                        f"{mod_progress}%" if mod_progress != 'N/A' else 'N/A',
+                        "Yes" if can_modify else "No"
+                    )
+                
+                console.print(vol_table)
         else:
             if json_output:
                 console.print(response.content.decode("utf-8"))
@@ -74,7 +128,7 @@ def create_zpool(
 ):
     """Create a new ZPool."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         # Validate and convert enums
@@ -123,7 +177,7 @@ def delete_zpool(
             return
 
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = delete_zpool_zpool_id.sync_detailed(zpool_id=zpool_id, client=auth_client)
@@ -156,7 +210,7 @@ def modify_zpool(
 ):
     """Modify a ZPool."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         body_kwargs = {}
@@ -199,7 +253,7 @@ def scrub_zpool(
 ):
     """Start a scrub on a ZPool."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = post_zpool_zpool_id_scrub.sync_detailed(zpool_id=zpool_id, client=auth_client)

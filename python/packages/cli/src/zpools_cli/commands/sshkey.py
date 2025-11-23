@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 from rich.console import Console
 from rich.table import Table
-from zpools import ZPoolsClient
+from zpools_cli.utils import get_authenticated_client
 from zpools._generated.api.ssh_keys import (
     get_sshkey,
     post_sshkey,
@@ -13,7 +13,7 @@ from zpools._generated.api.ssh_keys import (
 from zpools._generated.models.post_sshkey_body import PostSshkeyBody
 from zpools._generated.types import UNSET
 
-app = typer.Typer(help="Manage SSH keys")
+app = typer.Typer(help="Manage SSH keys", no_args_is_help=True)
 console = Console()
 
 def get_key_details(pubkey: str):
@@ -39,7 +39,7 @@ def list_sshkeys(
 ):
     """List all SSH keys."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = get_sshkey.sync_detailed(client=auth_client)
@@ -86,7 +86,7 @@ def add_sshkey(
 ):
     """Add a new SSH key."""
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         # Check if input is a file path
@@ -127,7 +127,7 @@ def delete_sshkey(
             return
 
     try:
-        client = ZPoolsClient()
+        client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
         response = delete_sshkey_pubkey_id.sync_detailed(pubkey_id=pubkey_id, client=auth_client)

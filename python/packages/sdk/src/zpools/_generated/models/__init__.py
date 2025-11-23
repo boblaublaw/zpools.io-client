@@ -24,7 +24,13 @@ from .get_sshkey_response_200_detail import GetSshkeyResponse200Detail
 from .get_sshkey_response_200_detail_keys_item import GetSshkeyResponse200DetailKeysItem
 from .get_zpools_response_200 import GetZpoolsResponse200
 from .get_zpools_response_200_detail import GetZpoolsResponse200Detail
-from .get_zpools_response_200_detail_zpools_item import GetZpoolsResponse200DetailZpoolsItem
+from .get_zpools_response_200_detail_zpools import GetZpoolsResponse200DetailZpools
+from .get_zpools_response_200_detail_zpools_additional_property import (
+    GetZpoolsResponse200DetailZpoolsAdditionalProperty,
+)
+from .get_zpools_response_200_detail_zpools_additional_property_volumes_item import (
+    GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem,
+)
 from .post_codes_claim_body import PostCodesClaimBody
 from .post_codes_claim_body_tos import PostCodesClaimBodyTos
 from .post_codes_claim_response_201 import PostCodesClaimResponse201
@@ -79,7 +85,9 @@ __all__ = (
     "GetSshkeyResponse200DetailKeysItem",
     "GetZpoolsResponse200",
     "GetZpoolsResponse200Detail",
-    "GetZpoolsResponse200DetailZpoolsItem",
+    "GetZpoolsResponse200DetailZpools",
+    "GetZpoolsResponse200DetailZpoolsAdditionalProperty",
+    "GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem",
     "PostCodesClaimBody",
     "PostCodesClaimBodyTos",
     "PostCodesClaimResponse201",

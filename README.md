@@ -85,19 +85,6 @@ For all operations, destructive commands are your responsibility.
 
 ---
 
-## Requirements (high-level)
-- A POSIX-like environment with:
-  - `bash`, `curl`, and the `zpool` / `zfs` commands available
-- Optional, recommended tools for working with JSON/tabular output:
-  - `jq` and `mlr (Miller)`
-- Tested versions (informational, not strict minimums):
-  - Bash 5.2.21, curl 8.9.1, ZFS 2.2.2, mlr 6.11.0
-  (Likely works across a broad range of versions and platforms; primary testing is on Ubuntu.)
-
-> Detailed install and environment guidance will live in `bash/README.md` (prototype) and `QUICKSTART.md`.
-
----
-
 ## Installing & Using (high-level)
 1) Clone this repo: `git clone https://github.com/<your-org-or-user>/zpools.io-client`
 2) Navigate to the Bash prototype: `cd zpools.io-client/bash`

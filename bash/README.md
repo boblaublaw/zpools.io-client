@@ -42,9 +42,9 @@ Optional but useful tools:
 
    Example content:
 ```
-ZPOOLUSER="your_username_here"
+ZPOOL_USER="your_username_here"
 SSH_PRIVKEY_FILE="/home/you/.ssh/id_ed25519"
-API_DOMAIN="https://api.zpools.io/v1"
+ZPOOL_API_URL="https://api.zpools.io/v1"
 SSH_HOST="ssh.zpools.io"
 BZFS_BIN="/home/you/bin/bzfs"
 LOCAL_POOL="rpool/USERDATA/you_xxxxxx"
@@ -119,7 +119,7 @@ Show job history:
 
 ## Troubleshooting
 - If you see “Authentication failed”, ensure your username and password are correct.
-- If API_DOMAIN or SSH_HOST are missing, set them in your rcfile.
+- If ZPOOL_API_URL or SSH_HOST are missing, set them in your rcfile.
 - If you run non-interactively, Personal Access Tokens (PAT) are recommended. (Docs TBD)
 - For SSH issues, verify that your private key file exists and has proper permissions.
 - Running `bash -x ./zpoolcli.sh ...` will show underlying operations.

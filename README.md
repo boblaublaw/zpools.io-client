@@ -38,9 +38,9 @@ The CLI reads configuration from an rcfile to avoid repeatedly passing flags and
 - **Default path:** `~/.config/zpools.io/zpoolrc`
 - **Set the following keys (example values shown):**
 ```bash
-ZPOOLUSER="your zpools.io username"
+ZPOOL_USER="your zpools.io username"
 SSH_PRIVKEY_FILE="/path/to/your/private/key"
-API_DOMAIN="https://api.zpools.io/v1"
+ZPOOL_API_URL="https://api.zpools.io/v1"
 SSH_HOST="ssh.zpools.io"
 
 # Optional (BzFS sync integration):

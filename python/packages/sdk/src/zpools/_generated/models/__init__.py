@@ -16,6 +16,7 @@ from .get_jobs_response_200 import GetJobsResponse200
 from .get_jobs_response_200_detail import GetJobsResponse200Detail
 from .get_jobs_response_200_detail_jobs_item import GetJobsResponse200DetailJobsItem
 from .get_jobs_response_200_detail_jobs_item_status import GetJobsResponse200DetailJobsItemStatus
+from .get_jobs_sort import GetJobsSort
 from .get_pat_response_200 import GetPatResponse200
 from .get_pat_response_200_detail import GetPatResponse200Detail
 from .get_pat_response_200_detail_items_item import GetPatResponse200DetailItemsItem
@@ -77,6 +78,7 @@ __all__ = (
     "GetJobsResponse200Detail",
     "GetJobsResponse200DetailJobsItem",
     "GetJobsResponse200DetailJobsItemStatus",
+    "GetJobsSort",
     "GetPatResponse200",
     "GetPatResponse200Detail",
     "GetPatResponse200DetailItemsItem",

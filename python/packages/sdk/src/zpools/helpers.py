@@ -27,10 +27,10 @@ class JobPoller:
     
     def wait_for_completion(self) -> dict:
         """
-        Poll job until it reaches a terminal state (completed/failed).
+        Poll job until it reaches a terminal state (succeeded/failed).
         
         Returns:
-            Final job details dict
+            Final job details dict (the 'job' object from additional_properties)
             
         Raises:
             TimeoutError: If job doesn't complete within timeout
@@ -52,19 +52,23 @@ class JobPoller:
                     f"Failed to get job status: {response.status_code}"
                 )
             
-            job = response.parsed.detail
-            status = job.status
+            # The actual job data is in additional_properties['job']
+            job_data = response.parsed.detail.additional_properties.get('job')
+            if not job_data:
+                raise RuntimeError(f"Job {self.job_id} response missing 'job' field")
             
-            if status == "completed":
-                return job
-            elif status == "failed":
-                raise RuntimeError(
-                    f"Job {self.job_id} failed: {getattr(job, 'error', 'Unknown error')}"
-                )
-            elif status in ("pending", "running"):
+            current_status = job_data.get('current_status', {})
+            state = current_status.get('state')
+            
+            if state == "succeeded":
+                return job_data
+            elif state == "failed":
+                error_msg = current_status.get('message', 'Unknown error')
+                raise RuntimeError(f"Job {self.job_id} failed: {error_msg}")
+            elif state in ("pending", "running", "queued", "in progress"):
                 time.sleep(self.poll_interval)
             else:
-                raise RuntimeError(f"Unknown job status: {status}")
+                raise RuntimeError(f"Unknown job state: {state}")
 
 
 def wait_for_zpool_ready(

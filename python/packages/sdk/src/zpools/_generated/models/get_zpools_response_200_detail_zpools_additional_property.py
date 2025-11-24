@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -24,14 +24,14 @@ class GetZpoolsResponse200DetailZpoolsAdditionalProperty:
     """
     Attributes:
         create_time (datetime.datetime | Unset):
-        last_scrub_time (datetime.datetime | Unset):
+        last_scrub_time (datetime.datetime | None | Unset):
         username (str | Unset):
         volume_count (int | Unset):
         volumes (list[GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem] | Unset):
     """
 
     create_time: datetime.datetime | Unset = UNSET
-    last_scrub_time: datetime.datetime | Unset = UNSET
+    last_scrub_time: datetime.datetime | None | Unset = UNSET
     username: str | Unset = UNSET
     volume_count: int | Unset = UNSET
     volumes: list[GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem] | Unset = UNSET
@@ -42,9 +42,13 @@ class GetZpoolsResponse200DetailZpoolsAdditionalProperty:
         if not isinstance(self.create_time, Unset):
             create_time = self.create_time.isoformat()
 
-        last_scrub_time: str | Unset = UNSET
-        if not isinstance(self.last_scrub_time, Unset):
+        last_scrub_time: None | str | Unset
+        if isinstance(self.last_scrub_time, Unset):
+            last_scrub_time = UNSET
+        elif isinstance(self.last_scrub_time, datetime.datetime):
             last_scrub_time = self.last_scrub_time.isoformat()
+        else:
+            last_scrub_time = self.last_scrub_time
 
         username = self.username
 
@@ -87,12 +91,22 @@ class GetZpoolsResponse200DetailZpoolsAdditionalProperty:
         else:
             create_time = isoparse(_create_time)
 
-        _last_scrub_time = d.pop("LastScrubTime", UNSET)
-        last_scrub_time: datetime.datetime | Unset
-        if isinstance(_last_scrub_time, Unset):
-            last_scrub_time = UNSET
-        else:
-            last_scrub_time = isoparse(_last_scrub_time)
+        def _parse_last_scrub_time(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                last_scrub_time_type_0 = isoparse(data)
+
+                return last_scrub_time_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        last_scrub_time = _parse_last_scrub_time(d.pop("LastScrubTime", UNSET))
 
         username = d.pop("Username", UNSET)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -19,8 +19,8 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
     Attributes:
         can_modify_now (bool | Unset):
         create_time (datetime.datetime | Unset):
-        mod_last_time (datetime.datetime | Unset):
-        mod_progress (int | Unset):
+        mod_last_time (datetime.datetime | None | Unset):
+        mod_progress (int | None | Unset):
         mod_state (str | Unset):
         size (int | Unset):
         state (str | Unset):
@@ -30,8 +30,8 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
 
     can_modify_now: bool | Unset = UNSET
     create_time: datetime.datetime | Unset = UNSET
-    mod_last_time: datetime.datetime | Unset = UNSET
-    mod_progress: int | Unset = UNSET
+    mod_last_time: datetime.datetime | None | Unset = UNSET
+    mod_progress: int | None | Unset = UNSET
     mod_state: str | Unset = UNSET
     size: int | Unset = UNSET
     state: str | Unset = UNSET
@@ -46,11 +46,19 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
         if not isinstance(self.create_time, Unset):
             create_time = self.create_time.isoformat()
 
-        mod_last_time: str | Unset = UNSET
-        if not isinstance(self.mod_last_time, Unset):
+        mod_last_time: None | str | Unset
+        if isinstance(self.mod_last_time, Unset):
+            mod_last_time = UNSET
+        elif isinstance(self.mod_last_time, datetime.datetime):
             mod_last_time = self.mod_last_time.isoformat()
+        else:
+            mod_last_time = self.mod_last_time
 
-        mod_progress = self.mod_progress
+        mod_progress: int | None | Unset
+        if isinstance(self.mod_progress, Unset):
+            mod_progress = UNSET
+        else:
+            mod_progress = self.mod_progress
 
         mod_state = self.mod_state
 
@@ -98,14 +106,31 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
         else:
             create_time = isoparse(_create_time)
 
-        _mod_last_time = d.pop("ModLastTime", UNSET)
-        mod_last_time: datetime.datetime | Unset
-        if isinstance(_mod_last_time, Unset):
-            mod_last_time = UNSET
-        else:
-            mod_last_time = isoparse(_mod_last_time)
+        def _parse_mod_last_time(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                mod_last_time_type_0 = isoparse(data)
 
-        mod_progress = d.pop("ModProgress", UNSET)
+                return mod_last_time_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        mod_last_time = _parse_mod_last_time(d.pop("ModLastTime", UNSET))
+
+        def _parse_mod_progress(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        mod_progress = _parse_mod_progress(d.pop("ModProgress", UNSET))
 
         mod_state = d.pop("ModState", UNSET)
 

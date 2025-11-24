@@ -5,12 +5,6 @@ import tempfile
 from rich.console import Console
 from rich.table import Table
 from zpools_cli.utils import get_authenticated_client
-from zpools._generated.api.ssh_keys import (
-    get_sshkey,
-    post_sshkey,
-    delete_sshkey_pubkey_id
-)
-from zpools._generated.models.post_sshkey_body import PostSshkeyBody
 from zpools._generated.types import UNSET
 
 app = typer.Typer(help="Manage SSH keys", no_args_is_help=True)
@@ -40,9 +34,8 @@ def list_sshkeys(
     """List all SSH keys."""
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        response = get_sshkey.sync_detailed(client=auth_client)
+        response = client.list_sshkeys()
         
         if response.status_code == 200:
             if json_output:
@@ -87,7 +80,6 @@ def add_sshkey(
     """Add a new SSH key."""
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
         # Check if input is a file path
         import os
@@ -96,10 +88,8 @@ def add_sshkey(
                 pubkey_content = f.read().strip()
         else:
             pubkey_content = pubkey.strip()
-
-        body = PostSshkeyBody(pubkey=pubkey_content)
         
-        response = post_sshkey.sync_detailed(client=auth_client, body=body)
+        response = client.add_sshkey(public_key=pubkey_content)
         
         if response.status_code == 201:
             if json_output:
@@ -128,9 +118,8 @@ def delete_sshkey(
 
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        response = delete_sshkey_pubkey_id.sync_detailed(pubkey_id=pubkey_id, client=auth_client)
+        response = client.delete_sshkey(fingerprint=pubkey_id)
         
         if response.status_code == 200:
             if json_output:

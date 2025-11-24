@@ -24,7 +24,7 @@ class GetPatResponse200DetailItemsItem:
         label (str | Unset): Token label
         last_ip (str | Unset): Last IP address used from
         last_ua (str | Unset): Last user agent
-        last_used_at (datetime.datetime | Unset): Last usage timestamp
+        last_used_at (datetime.datetime | None | Unset): Last usage timestamp
         scopes (list[str] | Unset): List of scopes
         status (str | Unset): Token status (active, revoked, expired)
         token_ver (int | Unset): Token version
@@ -38,7 +38,7 @@ class GetPatResponse200DetailItemsItem:
     label: str | Unset = UNSET
     last_ip: str | Unset = UNSET
     last_ua: str | Unset = UNSET
-    last_used_at: datetime.datetime | Unset = UNSET
+    last_used_at: datetime.datetime | None | Unset = UNSET
     scopes: list[str] | Unset = UNSET
     status: str | Unset = UNSET
     token_ver: int | Unset = UNSET
@@ -66,9 +66,13 @@ class GetPatResponse200DetailItemsItem:
 
         last_ua = self.last_ua
 
-        last_used_at: str | Unset = UNSET
-        if not isinstance(self.last_used_at, Unset):
+        last_used_at: None | str | Unset
+        if isinstance(self.last_used_at, Unset):
+            last_used_at = UNSET
+        elif isinstance(self.last_used_at, datetime.datetime):
             last_used_at = self.last_used_at.isoformat()
+        else:
+            last_used_at = self.last_used_at
 
         scopes: list[str] | Unset = UNSET
         if not isinstance(self.scopes, Unset):
@@ -142,12 +146,22 @@ class GetPatResponse200DetailItemsItem:
 
         last_ua = d.pop("last_ua", UNSET)
 
-        _last_used_at = d.pop("last_used_at", UNSET)
-        last_used_at: datetime.datetime | Unset
-        if isinstance(_last_used_at, Unset):
-            last_used_at = UNSET
-        else:
-            last_used_at = isoparse(_last_used_at)
+        def _parse_last_used_at(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                last_used_at_type_0 = isoparse(data)
+
+                return last_used_at_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        last_used_at = _parse_last_used_at(d.pop("last_used_at", UNSET))
 
         scopes = cast(list[str], d.pop("scopes", UNSET))
 

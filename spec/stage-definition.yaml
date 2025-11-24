@@ -565,6 +565,7 @@ paths:
                             last_used_at:
                               description: Last usage timestamp
                               format: date-time
+                              nullable: true
                               type: string
                             scopes:
                               description: List of scopes

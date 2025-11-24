@@ -149,3 +149,117 @@ class ZPoolsClient:
             base_url=self.api_url, 
             headers={"Authorization": f"Bearer {token}"}
         )
+    
+    # PAT convenience methods
+    def create_pat(self, label: str, scopes: list = None, expiry: str = None, tenant_id: str = None):
+        """
+        Create a Personal Access Token.
+        
+        Args:
+            label: Human-readable label for the PAT
+            scopes: Optional list of scopes (e.g., ['pat', 'sshkey', 'job', 'zpool'])
+            expiry: Optional expiry date (YYYY-MM-DD)
+            tenant_id: Optional tenant ID
+            
+        Returns:
+            Response with status_code, detail.key_id, and detail.token
+        """
+        from ._generated.api.personal_access_tokens import post_pat
+        from ._generated.models.post_pat_body import PostPatBody
+        
+        auth_client = self.get_authenticated_client()
+        
+        # Build kwargs, only including non-None values to avoid passing None to UNSET fields
+        body_kwargs = {"label": label}
+        if scopes is not None:
+            body_kwargs["scopes"] = scopes
+        if expiry is not None:
+            body_kwargs["expiry"] = expiry
+        if tenant_id is not None:
+            body_kwargs["tenant_id"] = tenant_id
+        
+        return post_pat.sync_detailed(
+            client=auth_client,
+            body=PostPatBody(**body_kwargs)
+        )
+    
+    def list_pats(self):
+        """
+        List all Personal Access Tokens.
+        
+        Returns:
+            Response with status_code and parsed list of PATs
+        """
+        from ._generated.api.personal_access_tokens import get_pat
+        
+        auth_client = self.get_authenticated_client()
+        return get_pat.sync_detailed(client=auth_client)
+    
+    def revoke_pat(self, key_id: str):
+        """
+        Revoke a Personal Access Token.
+        
+        Args:
+            key_id: The key_id of the PAT to revoke
+            
+        Returns:
+            Response with status_code
+        """
+        from ._generated.api.personal_access_tokens import delete_pat_key_id
+        
+        auth_client = self.get_authenticated_client()
+        return delete_pat_key_id.sync_detailed(client=auth_client, key_id=key_id)
+    
+    # SSH Key convenience methods
+    def list_sshkeys(self):
+        """
+        List all SSH keys.
+        
+        Returns:
+            Response with status_code and parsed list of SSH keys
+        """
+        from ._generated.api.ssh_keys import get_sshkey
+        
+        auth_client = self.get_authenticated_client()
+        return get_sshkey.sync_detailed(client=auth_client)
+    
+    def add_sshkey(self, public_key: str, label: str = None):
+        """
+        Add an SSH public key.
+        
+        Args:
+            public_key: SSH public key content
+            label: Optional label for the key
+            
+        Returns:
+            Response with status_code and fingerprint
+        """
+        from ._generated.api.ssh_keys import post_sshkey
+        from ._generated.models.post_sshkey_body import PostSshkeyBody
+        
+        auth_client = self.get_authenticated_client()
+        
+        # Build kwargs, only including non-None values
+        body_kwargs = {"public_key": public_key}
+        if label is not None:
+            body_kwargs["label"] = label
+        
+        return post_sshkey.sync_detailed(
+            client=auth_client,
+            body=PostSshkeyBody(**body_kwargs)
+        )
+    
+    def delete_sshkey(self, fingerprint: str):
+        """
+        Delete an SSH key.
+        
+        Args:
+            fingerprint: The fingerprint of the key to delete
+            
+        Returns:
+            Response with status_code
+        """
+        from ._generated.api.ssh_keys import delete_sshkey_fingerprint
+        
+        auth_client = self.get_authenticated_client()
+        return delete_sshkey_fingerprint.sync_detailed(client=auth_client, fingerprint=fingerprint)

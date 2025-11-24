@@ -4,12 +4,6 @@ import datetime
 from rich.console import Console
 from rich.table import Table
 from zpools_cli.utils import get_authenticated_client
-from zpools._generated.api.personal_access_tokens import (
-    get_pat,
-    post_pat,
-    delete_pat_key_id
-)
-from zpools._generated.models.post_pat_body import PostPatBody
 from zpools._generated.types import UNSET
 
 app = typer.Typer(help="Manage Personal Access Tokens", no_args_is_help=True)
@@ -22,9 +16,8 @@ def list_pats(
     """List all Personal Access Tokens."""
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        response = get_pat.sync_detailed(client=auth_client)
+        response = client.list_pats()
         
         if response.status_code == 200:
             if json_output:
@@ -78,28 +71,22 @@ def create_pat(
     """Create a new Personal Access Token."""
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        # Build the body with optional fields
-        body_kwargs = {"label": label}
-        
+        # Validate expiry format if provided
+        expiry_date = None
         if expiry:
             try:
-                expiry_date = datetime.datetime.strptime(expiry, "%Y-%m-%d").date()
-                body_kwargs["expiry"] = expiry_date
+                expiry_date = datetime.datetime.strptime(expiry, "%Y-%m-%d").date().isoformat()
             except ValueError:
                 console.print("[red]Invalid expiry date format. Use YYYY-MM-DD[/red]")
                 raise typer.Exit(1)
         
-        if tenant_id:
-            body_kwargs["tenant_id"] = tenant_id
-        
-        if scopes:
-            body_kwargs["scopes"] = scopes
-        
-        body = PostPatBody(**body_kwargs)
-        
-        response = post_pat.sync_detailed(client=auth_client, body=body)
+        response = client.create_pat(
+            label=label,
+            expiry=expiry_date,
+            tenant_id=tenant_id,
+            scopes=scopes
+        )
         
         if response.status_code == 201:
             if json_output:
@@ -129,9 +116,8 @@ def revoke_pat(
 
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        response = delete_pat_key_id.sync_detailed(key_id=key_id, client=auth_client)
+        response = client.revoke_pat(key_id=key_id)
         
         if response.status_code == 200:
             if json_output:

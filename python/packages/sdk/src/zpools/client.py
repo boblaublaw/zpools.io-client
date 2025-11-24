@@ -145,13 +145,11 @@ class ZPoolsClient:
         from ._generated import AuthenticatedClient
         
         token = self.get_token()
-        print(f"DEBUG SDK: Creating AuthenticatedClient with token={token[:50]}...")
         # Create an AuthenticatedClient with the token
         client = AuthenticatedClient(
             base_url=self.api_url,
             token=token
         )
-        print(f"DEBUG SDK: Created {type(client)}")
         return client
     
     # PAT convenience methods

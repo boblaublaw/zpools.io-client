@@ -420,3 +420,73 @@ class ZPoolsClient:
             after=after_param,
             sort=sort_param
         )
+    
+    def get_job_history(self, job_id: str):
+        """
+        Get job history/timeline.
+        
+        Args:
+            job_id: The job_id to query
+            
+        Returns:
+            Response with status_code and job history events
+        """
+        from ._generated.api.jobs import get_job_job_id_history
+        
+        auth_client = self.get_authenticated_client()
+        return get_job_job_id_history.sync_detailed(client=auth_client, job_id=job_id)
+    
+    # Billing convenience methods
+    def get_billing_balance(self):
+        """
+        Get account balance.
+        
+        Returns:
+            Response with status_code and balance details
+        """
+        from ._generated.api.billing import get_billing_balance
+        
+        auth_client = self.get_authenticated_client()
+        return get_billing_balance.sync_detailed(client=auth_client)
+    
+    def get_billing_ledger(self, since: str = None, until: str = None, limit: int = None):
+        """
+        Get billing ledger entries with optional date filters.
+        
+        Args:
+            since: Start date in YYYY-MM-DD format (or date object)
+            until: End date in YYYY-MM-DD format (or date object)
+            limit: Maximum number of entries (1-5000, default 500)
+            
+        Returns:
+            Response with status_code and ledger items
+        """
+        from ._generated.api.billing import get_billing_ledger
+        from ._generated.types import UNSET
+        from datetime import datetime
+        
+        auth_client = self.get_authenticated_client()
+        
+        # Convert string dates to date objects
+        since_param = UNSET
+        if since is not None:
+            if isinstance(since, str):
+                since_param = datetime.strptime(since, "%Y-%m-%d").date()
+            else:
+                since_param = since
+        
+        until_param = UNSET
+        if until is not None:
+            if isinstance(until, str):
+                until_param = datetime.strptime(until, "%Y-%m-%d").date()
+            else:
+                until_param = until
+        
+        limit_param = limit if limit is not None else UNSET
+        
+        return get_billing_ledger.sync_detailed(
+            client=auth_client,
+            since=since_param,
+            until=until_param,
+            limit=limit_param
+        )

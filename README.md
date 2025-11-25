@@ -95,11 +95,20 @@ For all operations, destructive commands are your responsibility.
 
 ---
 
-## Roadmap & Documentation Index
-- `bash/README.md` — CLI prototype usage, requirements, and install guidance (coming soon)
-- `QUICKSTART.md` — concise, copy-paste onboarding guide (coming soon)
-- `llm.txt` — deep technical reference for RAG / power-user queries (coming soon)
-- bzfs (replication helper) documentation — TBD
+## Documentation Index
+
+This repository contains several README files, each focused on a specific component:
+
+- **This file (`README.md`)** — Repository overview, high-level concepts, and authentication
+- **`python/README.md`** — Python workspace setup with `uv`, installation instructions
+- **`python/packages/cli/README.md`** — CLI (`zpcli`) installation, usage, and development
+- **`python/packages/sdk/README.md`** — Python SDK usage and API examples
+- **`bash/README.md`** — Bash CLI prototype usage and requirements (coming soon)
+
+Additional documentation (coming soon):
+- `QUICKSTART.md` — Concise, copy-paste onboarding guide
+- `llm.txt` — Deep technical reference for RAG / power-user queries
+- bzfs (replication helper) documentation
 
 ---
 

@@ -1,5 +1,6 @@
 import typer
 import json
+from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
 from zpools_cli.utils import get_authenticated_client
@@ -13,16 +14,49 @@ from zpools._generated.types import UNSET
 app = typer.Typer(help="Manage background jobs", no_args_is_help=True)
 console = Console()
 
+
+def format_relative_time(iso_timestamp: str) -> str:
+    """Convert ISO timestamp to compact relative time (e.g. '-2h' or '-1d3h')"""
+    try:
+        dt = datetime.fromisoformat(iso_timestamp.replace('Z', '+00:00'))
+        now = datetime.now(timezone.utc)
+        delta = now - dt
+        
+        total_seconds = int(delta.total_seconds())
+        days = delta.days
+        hours = (total_seconds % 86400) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        if days > 0:
+            if hours > 0:
+                return f"-{days}d{hours}h"
+            return f"-{days}d"
+        elif hours > 0:
+            if minutes > 0:
+                return f"-{hours}h{minutes}m"
+            return f"-{hours}h"
+        elif minutes > 0:
+            return f"-{minutes}m"
+        else:
+            return f"-{seconds}s"
+    except:
+        return iso_timestamp
+
+
 @app.command("list")
 def list_jobs(
+    limit: int = typer.Option(100, "--limit", "-n", help="Maximum number of jobs to return (1-1000)"),
+    before: str = typer.Option(None, "--before", help="Jobs created before this date (ISO 8601)"),
+    after: str = typer.Option(None, "--after", help="Jobs created after this date (ISO 8601)"),
+    sort: str = typer.Option("desc", "--sort", help="Sort order: asc or desc"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
-    """List all background jobs."""
+    """List all background jobs with optional filtering and sorting."""
     try:
         client = get_authenticated_client()
-        auth_client = client.get_authenticated_client()
         
-        response = get_jobs.sync_detailed(client=auth_client)
+        response = client.list_jobs(limit=limit, before=before, after=after, sort=sort)
         
         if response.status_code == 200:
             if json_output:
@@ -38,7 +72,7 @@ def list_jobs(
             table.add_column("ID", style="cyan")
             table.add_column("Type", style="magenta")
             table.add_column("Status", style="blue")
-            table.add_column("Created At", style="green")
+            table.add_column("Age", style="green", justify="right")
             table.add_column("Message", style="white")
 
             for job in jobs:
@@ -58,7 +92,12 @@ def list_jobs(
                     status_val = job.status.value if job.status is not UNSET else "Unknown"
                     message = ""
                 
-                created_at = str(job.created_at) if job.created_at is not UNSET else ""
+                # Get created_at (it's a datetime object in the schema)
+                if job.created_at is not UNSET:
+                    created_at_str = job.created_at.isoformat()
+                    relative_time = format_relative_time(created_at_str)
+                else:
+                    relative_time = ""
                 
                 # Truncate message if too long
                 if len(message) > 50:
@@ -68,7 +107,7 @@ def list_jobs(
                     job_id,
                     operation,
                     status_val,
-                    created_at,
+                    relative_time,
                     message
                 )
             console.print(table)
@@ -137,21 +176,30 @@ def job_history(
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
                 return
             
-            events = response.parsed.detail.events
-            if not events:
+            # History is in additional_properties, not in schema fields
+            history_data = response.parsed.detail.additional_properties.get('history', [])
+            
+            if not history_data:
                 console.print("No history found for this job.")
                 return
 
             table = Table(title=f"History for Job {job_id}")
             table.add_column("Timestamp", style="green")
+            table.add_column("Age", style="cyan", justify="right")
             table.add_column("Status", style="blue")
             table.add_column("Message", style="white")
 
-            for event in events:
+            for event in history_data:
+                timestamp = event.get('timestamp', '')
+                event_type = event.get('event_type', '')
+                message = event.get('message', '')
+                relative_time = format_relative_time(timestamp) if timestamp else ""
+                
                 table.add_row(
-                    str(event.timestamp),
-                    event.status,
-                    event.message or ""
+                    timestamp,
+                    relative_time,
+                    event_type,
+                    message
                 )
             console.print(table)
         else:

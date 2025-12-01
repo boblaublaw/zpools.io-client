@@ -2,7 +2,7 @@ import typer
 from rich.console import Console
 from zpools import ZPoolsClient
 from zpools._generated.api.authentication import get_hello
-from zpools_cli.commands import zpool, sshkey, pat, job, billing
+from zpools_cli.commands import zpool, sshkey, pat, job, billing, zfs
 
 app = typer.Typer()
 app.add_typer(zpool.app, name="zpool")
@@ -10,6 +10,7 @@ app.add_typer(sshkey.app, name="sshkey")
 app.add_typer(pat.app, name="pat")
 app.add_typer(job.app, name="job")
 app.add_typer(billing.app, name="billing")
+app.add_typer(zfs.app, name="zfs")
 console = Console()
 
 @app.command()

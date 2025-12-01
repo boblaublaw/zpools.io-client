@@ -50,13 +50,14 @@ def get_balance(
 
 @app.command("ledger")
 def get_ledger(
-    limit: int = typer.Option(20, help="Number of entries to display"),
-    since: str = typer.Option(None, help="Start date (YYYY-MM-DD)"),
-    until: str = typer.Option(None, help="End date (YYYY-MM-DD)"),
+    limit: int = typer.Option(None, help="Number of entries to display"),
+    since: str = typer.Option(None, help="Start usage date (YYYY-MM-DD) - filters by when charges are for"),
+    until: str = typer.Option(None, help="End usage date (YYYY-MM-DD) - filters by when charges are for"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
-    """View billing transaction history."""
+    """View billing transaction history. Shows both usage_date (when charges are for) and ts (when posted)."""
     try:
+        from zpools_cli.utils import get_authenticated_client
         client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
@@ -68,10 +69,6 @@ def get_ledger(
             except ValueError:
                 console.print("[red]Invalid date format for --since. Use YYYY-MM-DD[/red]")
                 return
-        else:
-            # Default to current month if no since date provided
-            # This ensures we get recent data, not ancient history
-            since_date = datetime.date.today().replace(day=1)
 
         until_date = None
         if until:
@@ -81,9 +78,12 @@ def get_ledger(
                 console.print("[red]Invalid date format for --until. Use YYYY-MM-DD[/red]")
                 return
 
-        # Fetch with maximum limit to get all records, then we'll reverse and limit locally
-        # The API default limit is 500, which is also the max
-        kwargs = {"limit": 500, "since": since_date}
+        # Build kwargs for API call (API returns newest-first)
+        kwargs = {}
+        if limit:
+            kwargs["limit"] = limit
+        if since_date:
+            kwargs["since"] = since_date
         if until_date:
             kwargs["until"] = until_date
 
@@ -107,11 +107,8 @@ def get_ledger(
             table.add_column("Amount (USD)", style="magenta")
             table.add_column("Note", style="white")
 
-            # Display newest first (API returns oldest first)
-            # Apply local limit after reversing
-            items_to_show = list(reversed(items))[:limit]
-            
-            for item in items_to_show:
+            # API returns newest-first, display as-is
+            for item in items:
                 # Extract fields with UNSET checks
                 usage_date = item.usage_date if item.usage_date is not UNSET else ""
                 ts = item.ts if item.ts is not UNSET else ""
@@ -149,6 +146,7 @@ def claim_code(
 ):
     """Redeem a credit code."""
     try:
+        from zpools_cli.utils import get_authenticated_client
         client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         
@@ -179,6 +177,7 @@ def start_payment(
 ):
     """Start a payment session to add credits."""
     try:
+        from zpools_cli.utils import get_authenticated_client
         client = get_authenticated_client()
         auth_client = client.get_authenticated_client()
         

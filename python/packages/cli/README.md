@@ -50,6 +50,8 @@ zpcli job list --limit 10 --sort desc
 # Manage zpools
 zpcli zpool list
 zpcli zpool create --size 125 --volume-type gp3
+zpcli zpool modify <zpool_id> --volume-type sc1  # Switch to cold tier
+zpcli zpool modify <zpool_id> --volume-type gp3  # Switch to hot tier
 
 # Manage SSH keys
 zpcli sshkey list

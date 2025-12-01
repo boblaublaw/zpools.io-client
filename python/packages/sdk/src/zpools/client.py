@@ -34,6 +34,10 @@ class ZPoolsClient:
         # Password is never in RC file for security
         self.password = password or os.getenv("ZPOOL_PASSWORD")
         
+        # SSH configuration for ZFS operations
+        self.ssh_host = os.getenv("SSH_HOST") or self.config.get("SSH_HOST")
+        self.ssh_privkey = os.getenv("SSH_PRIVKEY_FILE") or self.config.get("SSH_PRIVKEY_FILE")
+        
         self._raw_client = Client(base_url=self.api_url)
         self._token_file = self._get_token_file_path()
 
@@ -453,9 +457,12 @@ class ZPoolsClient:
         """
         Get billing ledger entries with optional date filters.
         
+        Filters by usage_date (the date charges are for), not transaction timestamp.
+        Results include both usage_date and ts (transaction timestamp).
+        
         Args:
-            since: Start date in YYYY-MM-DD format (or date object)
-            until: End date in YYYY-MM-DD format (or date object)
+            since: Start usage date in YYYY-MM-DD format (or date object)
+            until: End usage date in YYYY-MM-DD format (or date object)
             limit: Maximum number of entries (1-5000, default 500)
             
         Returns:

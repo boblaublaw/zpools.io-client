@@ -76,7 +76,7 @@ The CLI groups commands into functional areas. Full usage and flags are shown by
   - inspect asynchronous operations (list/show/history)
 - **Zpools**
   - `zpool ...`
-  - view and manage zpools
+  - view and manage zpools, including tier switching (gp3 ↔ sc1 for cost optimization)
 - **ZFS over SSH**
   - `zfs ...`
   - for ZFS operations on zpools.io SSH endpoints

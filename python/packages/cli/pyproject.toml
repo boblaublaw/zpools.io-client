@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "Command line interface for zpools.io"
 readme = "README.md"
 requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "zpools.io", email = "zpools.io@gmail.com"}
+]
 dependencies = [
     "zpools-sdk",
     "typer",

@@ -337,10 +337,14 @@ class ZPoolsClient:
         """
         from ._generated.api.zpools import post_zpool_zpool_id_modify
         from ._generated.models.post_zpool_zpool_id_modify_body import PostZpoolZpoolIdModifyBody
+        from ._generated.models.post_zpool_zpool_id_modify_body_volume_type import PostZpoolZpoolIdModifyBodyVolumeType
         
         auth_client = self.get_authenticated_client()
         
-        body_kwargs = {"volume_type": target_volume_type}
+        # Convert string to enum type
+        vol_type_enum = PostZpoolZpoolIdModifyBodyVolumeType(target_volume_type)
+        
+        body_kwargs = {"volume_type": vol_type_enum}
         if new_size_in_gib is not None:
             body_kwargs["new_size_in_gib"] = new_size_in_gib
         

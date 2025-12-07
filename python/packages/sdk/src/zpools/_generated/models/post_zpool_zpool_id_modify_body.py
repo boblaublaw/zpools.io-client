@@ -16,16 +16,16 @@ T = TypeVar("T", bound="PostZpoolZpoolIdModifyBody")
 class PostZpoolZpoolIdModifyBody:
     """
     Attributes:
-        size_gb (int | Unset): New total size in GB
-        volume_type (PostZpoolZpoolIdModifyBodyVolumeType | Unset): EBS volume type. Accepted values: gp3, io1, io2
+        new_size_in_gib (int | Unset): New size in GiB (increases only)
+        volume_type (PostZpoolZpoolIdModifyBodyVolumeType | Unset): EBS volume type
     """
 
-    size_gb: int | Unset = UNSET
+    new_size_in_gib: int | Unset = UNSET
     volume_type: PostZpoolZpoolIdModifyBodyVolumeType | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        size_gb = self.size_gb
+        new_size_in_gib = self.new_size_in_gib
 
         volume_type: str | Unset = UNSET
         if not isinstance(self.volume_type, Unset):
@@ -34,8 +34,8 @@ class PostZpoolZpoolIdModifyBody:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if size_gb is not UNSET:
-            field_dict["size_gb"] = size_gb
+        if new_size_in_gib is not UNSET:
+            field_dict["new_size_in_gib"] = new_size_in_gib
         if volume_type is not UNSET:
             field_dict["volume_type"] = volume_type
 
@@ -44,7 +44,7 @@ class PostZpoolZpoolIdModifyBody:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        size_gb = d.pop("size_gb", UNSET)
+        new_size_in_gib = d.pop("new_size_in_gib", UNSET)
 
         _volume_type = d.pop("volume_type", UNSET)
         volume_type: PostZpoolZpoolIdModifyBodyVolumeType | Unset
@@ -54,7 +54,7 @@ class PostZpoolZpoolIdModifyBody:
             volume_type = PostZpoolZpoolIdModifyBodyVolumeType(_volume_type)
 
         post_zpool_zpool_id_modify_body = cls(
-            size_gb=size_gb,
+            new_size_in_gib=new_size_in_gib,
             volume_type=volume_type,
         )
 

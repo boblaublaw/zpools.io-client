@@ -225,7 +225,7 @@ def modify_zpool(
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
             elif not wait:
                 console.print(f"[green]ZPool {zpool_id} modification submitted.[/green]")
-                if response.parsed.detail:
+                if response.parsed and response.parsed.detail:
                     summary = response.parsed.detail.summary
                     console.print(f"Submitted: {summary.submitted}/{summary.discovered} volumes")
             

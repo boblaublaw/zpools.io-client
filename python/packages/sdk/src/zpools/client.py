@@ -320,25 +320,29 @@ class ZPoolsClient:
         auth_client = self.get_authenticated_client()
         return post_zpool_zpool_id_scrub.sync_detailed(client=auth_client, zpool_id=zpool_id)
     
-    def modify_zpool(self, zpool_id: str, new_size_gib: int = None):
+    def modify_zpool(self, zpool_id: str, target_volume_type: str, new_size_in_gib: int = None):
         """
-        Modify a zpool (async operation).
+        Modify a zpool's EBS volumes (fire-and-forget operation).
+        
+        Directly calls EBS ModifyVolume on each volume. Does not create a job.
+        Monitor progress via list_zpools() to see volume optimization status.
         
         Args:
             zpool_id: The zpool_id to modify
-            new_size_gib: New size in GiB
+            target_volume_type: Target EBS volume type (gp3, sc1, etc.)
+            new_size_in_gib: Optional new size in GiB (increases only)
             
         Returns:
-            Response with status_code 202 and job_id
+            Response with status_code 202 and summary of submitted modifications
         """
         from ._generated.api.zpools import post_zpool_zpool_id_modify
         from ._generated.models.post_zpool_zpool_id_modify_body import PostZpoolZpoolIdModifyBody
         
         auth_client = self.get_authenticated_client()
         
-        body_kwargs = {}
-        if new_size_gib is not None:
-            body_kwargs["new_size_gib"] = new_size_gib
+        body_kwargs = {"volume_type": target_volume_type}
+        if new_size_in_gib is not None:
+            body_kwargs["new_size_in_gib"] = new_size_in_gib
         
         return post_zpool_zpool_id_modify.sync_detailed(
             client=auth_client,

@@ -126,41 +126,42 @@ def create_zpool(
     ctx: typer.Context,
     size: int = typer.Option(125, help="Size in GiB (must be 125 during beta)"),
     volume_type: str = typer.Option("gp3", help="EBS volume type (gp3, sc1)"),
+    wait: bool = typer.Option(False, "--wait", help="Wait for creation to complete"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Create a new ZPool."""
     try:
         client = get_authenticated_client(ctx.obj)
-        auth_client = client.get_authenticated_client()
         
-        # Validate and convert enums
-        try:
-            v_type = PostZpoolBodyVolumeType(volume_type)
-        except ValueError:
-            console.print(f"[red]Invalid volume type:[/red] {volume_type}. Must be one of: {[e.value for e in PostZpoolBodyVolumeType]}")
-            return
-
-        try:
-            size_obj = PostZpoolBodyNewSizeInGib(size)
-        except ValueError:
-             console.print(f"[red]Invalid size:[/red] {size}. Must be one of: {[e.value for e in PostZpoolBodyNewSizeInGib]}")
-             return
-
-        body = PostZpoolBody(
-            new_size_in_gib=size_obj,
-            volume_type=v_type
-        )
-        
-        response = post_zpool.sync_detailed(client=auth_client, body=body)
+        response = client.create_zpool(size_gib=size, volume_type=volume_type)
         
         if response.status_code == 202:
-            if json_output:
-                print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
-                return
+            job_id = response.parsed.detail.job_id
+            zpool_id = response.parsed.detail.id
             
-            console.print(f"[green]ZPool created successfully![/green]")
-            console.print(f"ID: {response.parsed.detail.id}")
-            console.print(f"Status: {response.parsed.detail.status}")
+            if json_output and not wait:
+                print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
+            elif not wait:
+                console.print(f"[green]ZPool creation started![/green]")
+                console.print(f"ZPool ID: {zpool_id}")
+                console.print(f"Job ID: {job_id}")
+            
+            # Wait for completion if requested
+            if wait:
+                from zpools.helpers import JobPoller
+                console.print(f"[yellow]Waiting for creation job {job_id} to complete...[/yellow]")
+                
+                poller = JobPoller(client, job_id, timeout=1800, poll_interval=10)
+                try:
+                    final_job = poller.wait_for_completion()
+                    if json_output:
+                        print(json.dumps(final_job, indent=2, default=str))
+                    else:
+                        console.print(f"[green]ZPool {zpool_id} created successfully![/green]")
+                except TimeoutError:
+                    console.print(f"[red]Timeout waiting for creation to complete[/red]")
+                except RuntimeError as e:
+                    console.print(f"[red]Creation failed: {e}[/red]")
         else:
             console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
 
@@ -208,39 +209,48 @@ def delete_zpool(
 def modify_zpool(
     ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to modify"),
-    size: int = typer.Option(None, help="New size in GiB"),
-    volume_type: str = typer.Option(None, help="New volume type"),
+    volume_type: str = typer.Option(..., "--type", help="Target volume type (gp3, sc1)"),
+    size: int = typer.Option(None, "--size", help="New size in GiB (optional)"),
+    wait: bool = typer.Option(False, "--wait", help="Wait for modification to complete"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
-    """Modify a ZPool."""
+    """Modify a ZPool's EBS volumes (change type or size)."""
     try:
         client = get_authenticated_client(ctx.obj)
-        auth_client = client.get_authenticated_client()
         
-        body_kwargs = {}
-        if size is not None:
-            body_kwargs["size_gb"] = size
-        
-        if volume_type is not None:
-            try:
-                body_kwargs["volume_type"] = PostZpoolZpoolIdModifyBodyVolumeType(volume_type)
-            except ValueError:
-                console.print(f"[red]Invalid volume type:[/red] {volume_type}")
-                return
-
-        if not body_kwargs:
-            console.print("[yellow]No changes specified.[/yellow]")
-            return
-
-        body = PostZpoolZpoolIdModifyBody(**body_kwargs)
-        
-        response = post_zpool_zpool_id_modify.sync_detailed(zpool_id=zpool_id, client=auth_client, body=body)
+        response = client.modify_zpool(zpool_id, target_volume_type=volume_type, new_size_in_gib=size)
         
         if response.status_code == 202:
-            if json_output:
+            if json_output and not wait:
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
-            else:
-                console.print(f"[green]ZPool {zpool_id} modified successfully.[/green]")
+            elif not wait:
+                console.print(f"[green]ZPool {zpool_id} modification submitted.[/green]")
+                if response.parsed.detail:
+                    summary = response.parsed.detail.summary
+                    console.print(f"Submitted: {summary.submitted}/{summary.discovered} volumes")
+            
+            # Wait for completion if requested
+            if wait:
+                from zpools.helpers import ModifyPoller
+                console.print("[yellow]Waiting for volume modifications to complete...[/yellow]")
+                
+                def show_progress(zpool_dict):
+                    if not json_output:
+                        console.print(f"  Checking... (volumes still optimizing)")
+                
+                poller = ModifyPoller(client, zpool_id, timeout=1800, poll_interval=10)
+                try:
+                    final_zpool = poller.wait_for_completion(on_progress=show_progress)
+                    if json_output:
+                        print(json.dumps(final_zpool, indent=2, default=str))
+                    else:
+                        console.print(f"[green]Modification complete![/green]")
+                except TimeoutError:
+                    console.print(f"[red]Timeout waiting for modification to complete[/red]")
+                except Exception as e:
+                    console.print(f"[red]Error waiting for completion: {e}[/red]")
+        elif response.status_code == 409:
+            console.print(f"[yellow]Conflict:[/yellow] {response.parsed.message if response.parsed else response.content}")
         else:
             if json_output:
                 print(json.dumps({"error": response.content}, indent=2))
@@ -254,20 +264,40 @@ def modify_zpool(
 def scrub_zpool(
     ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to scrub"),
+    wait: bool = typer.Option(False, "--wait", help="Wait for scrub to complete"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Start a scrub on a ZPool."""
     try:
         client = get_authenticated_client(ctx.obj)
-        auth_client = client.get_authenticated_client()
         
-        response = post_zpool_zpool_id_scrub.sync_detailed(zpool_id=zpool_id, client=auth_client)
+        response = client.scrub_zpool(zpool_id)
         
         if response.status_code == 202:
-            if json_output:
+            job_id = response.parsed.detail.job_id
+            
+            if json_output and not wait:
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
-            else:
+            elif not wait:
                 console.print(f"[green]Scrub started for ZPool {zpool_id}.[/green]")
+                console.print(f"Job ID: {job_id}")
+            
+            # Wait for completion if requested
+            if wait:
+                from zpools.helpers import JobPoller
+                console.print(f"[yellow]Waiting for scrub job {job_id} to complete...[/yellow]")
+                
+                poller = JobPoller(client, job_id, timeout=600, poll_interval=5)
+                try:
+                    final_job = poller.wait_for_completion()
+                    if json_output:
+                        print(json.dumps(final_job, indent=2, default=str))
+                    else:
+                        console.print(f"[green]Scrub complete![/green]")
+                except TimeoutError:
+                    console.print(f"[red]Timeout waiting for scrub to complete[/red]")
+                except RuntimeError as e:
+                    console.print(f"[red]Scrub failed: {e}[/red]")
         else:
             if json_output:
                 print(json.dumps({"error": response.content}, indent=2))

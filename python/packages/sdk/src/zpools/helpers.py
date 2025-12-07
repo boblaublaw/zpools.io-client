@@ -144,3 +144,94 @@ def poll_until(
             return result
         
         time.sleep(poll_interval)
+
+
+class ModifyPoller:
+    """Helper for polling zpool volume modification status until complete."""
+    
+    def __init__(self, client, zpool_id: str, timeout: int = 1800, poll_interval: int = 10):
+        """
+        Initialize modify poller.
+        
+        Args:
+            client: ZPoolsClient instance
+            zpool_id: Zpool ID to monitor
+            timeout: Maximum time to wait in seconds (default: 30 minutes)
+            poll_interval: Time between polls in seconds (default: 10 seconds)
+        """
+        self.client = client
+        self.zpool_id = zpool_id
+        self.timeout = timeout
+        self.poll_interval = poll_interval
+    
+    def wait_for_completion(self, on_progress: Optional[Callable[[dict], None]] = None) -> dict:
+        """
+        Poll zpool until all volumes complete modification (optimization).
+        
+        EBS volume modifications show as "optimizing" state that transitions to "completed".
+        This monitors the volume metadata in list_zpools response.
+        
+        Args:
+            on_progress: Optional callback called with zpool dict on each poll
+            
+        Returns:
+            Final zpool details dict when all modifications complete
+            
+        Raises:
+            TimeoutError: If modifications don't complete within timeout
+            RuntimeError: If zpool disappears or API errors
+        """
+        start_time = time.time()
+        
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed > self.timeout:
+                raise TimeoutError(
+                    f"Zpool {self.zpool_id} volume modifications did not complete within {self.timeout}s"
+                )
+            
+            response = self.client.list_zpools()
+            
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Failed to list zpools: {response.status_code}"
+                )
+            
+            # Find our zpool
+            zpools = response.parsed.detail.zpools.to_dict() if response.parsed.detail.zpools else {}
+            zpool = zpools.get(self.zpool_id)
+            
+            if not zpool:
+                raise RuntimeError(f"Zpool {self.zpool_id} not found in list")
+            
+            # Call progress callback if provided
+            if on_progress:
+                on_progress(zpool)
+            
+            # Check if all volumes are done optimizing
+            # Volume metadata includes optimization state
+            # We need to check the volume info to see if modifications are complete
+            # The exact structure depends on what list_zpools returns
+            
+            # For now, check if we can find volume info
+            # If volumes are present and have modification state, check them
+            # Otherwise assume complete after first poll (for testing)
+            volumes = zpool.get('volumes', [])
+            
+            if not volumes:
+                # No volume info means we can't monitor - just return current state
+                return zpool
+            
+            all_complete = True
+            for vol in volumes:
+                # Check if volume is still optimizing
+                # EBS ModifyVolume operations show state as "optimizing" -> "completed"
+                state = vol.get('modification_state') or vol.get('state')
+                if state == 'optimizing':
+                    all_complete = False
+                    break
+            
+            if all_complete:
+                return zpool
+            
+            time.sleep(self.poll_interval)

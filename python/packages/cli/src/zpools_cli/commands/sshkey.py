@@ -29,11 +29,12 @@ def get_key_details(pubkey: str):
 
 @app.command("list")
 def list_sshkeys(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """List all SSH keys."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         response = client.list_sshkeys()
         
@@ -74,12 +75,13 @@ def list_sshkeys(
 
 @app.command("add")
 def add_sshkey(
+    ctx: typer.Context,
     pubkey: str = typer.Argument(..., help="SSH public key string or path to file"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Add a new SSH key."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         # Check if input is a file path
         import os
@@ -107,6 +109,7 @@ def add_sshkey(
 
 @app.command("delete")
 def delete_sshkey(
+    ctx: typer.Context,
     pubkey_id: str = typer.Argument(..., help="SSH key ID to delete"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
@@ -117,7 +120,7 @@ def delete_sshkey(
             return
 
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         response = client.delete_sshkey(fingerprint=pubkey_id)
         

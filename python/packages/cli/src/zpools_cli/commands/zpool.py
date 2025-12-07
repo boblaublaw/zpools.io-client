@@ -22,11 +22,12 @@ console = Console()
 
 @app.command("list")
 def list_zpools(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """List all ZPools."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = get_zpools.sync_detailed(client=auth_client)
@@ -122,13 +123,14 @@ def list_zpools(
 
 @app.command("create")
 def create_zpool(
+    ctx: typer.Context,
     size: int = typer.Option(125, help="Size in GiB (must be 125 during beta)"),
     volume_type: str = typer.Option("gp3", help="EBS volume type (gp3, sc1)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Create a new ZPool."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         # Validate and convert enums
@@ -167,6 +169,7 @@ def create_zpool(
 
 @app.command("delete")
 def delete_zpool(
+    ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to delete"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
@@ -177,7 +180,7 @@ def delete_zpool(
             return
 
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = delete_zpool_zpool_id.sync_detailed(zpool_id=zpool_id, client=auth_client)
@@ -203,6 +206,7 @@ def delete_zpool(
 
 @app.command("modify")
 def modify_zpool(
+    ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to modify"),
     size: int = typer.Option(None, help="New size in GiB"),
     volume_type: str = typer.Option(None, help="New volume type"),
@@ -210,7 +214,7 @@ def modify_zpool(
 ):
     """Modify a ZPool."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         body_kwargs = {}
@@ -248,12 +252,13 @@ def modify_zpool(
 
 @app.command("scrub")
 def scrub_zpool(
+    ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to scrub"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Start a scrub on a ZPool."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = post_zpool_zpool_id_scrub.sync_detailed(zpool_id=zpool_id, client=auth_client)

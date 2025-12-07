@@ -18,12 +18,13 @@ console = Console()
 
 @app.command("balance")
 def get_balance(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Get current account balance."""
     try:
         from zpools_cli.utils import get_authenticated_client
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = get_billing_balance.sync_detailed(client=auth_client)
@@ -50,6 +51,7 @@ def get_balance(
 
 @app.command("ledger")
 def get_ledger(
+    ctx: typer.Context,
     limit: int = typer.Option(None, help="Number of entries to display"),
     since: str = typer.Option(None, help="Start usage date (YYYY-MM-DD) - filters by when charges are for"),
     until: str = typer.Option(None, help="End usage date (YYYY-MM-DD) - filters by when charges are for"),
@@ -58,7 +60,7 @@ def get_ledger(
     """View billing transaction history. Shows both usage_date (when charges are for) and ts (when posted)."""
     try:
         from zpools_cli.utils import get_authenticated_client
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         # Parse dates if provided
@@ -141,13 +143,14 @@ def get_ledger(
 
 @app.command("claim")
 def claim_code(
+    ctx: typer.Context,
     code: str = typer.Argument(..., help="Credit code to redeem"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Redeem a credit code."""
     try:
         from zpools_cli.utils import get_authenticated_client
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         body = PostCodesClaimBody(code=code)
@@ -172,13 +175,14 @@ def claim_code(
 
 @app.command("start")
 def start_payment(
+    ctx: typer.Context,
     amount: int = typer.Argument(..., help="Amount in dollars to add (1-100)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Start a payment session to add credits."""
     try:
         from zpools_cli.utils import get_authenticated_client
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         # Validate amount (API accepts 1-100)

@@ -46,6 +46,7 @@ def format_relative_time(iso_timestamp: str) -> str:
 
 @app.command("list")
 def list_jobs(
+    ctx: typer.Context,
     limit: int = typer.Option(100, "--limit", "-n", help="Maximum number of jobs to return (1-1000)"),
     before: str = typer.Option(None, "--before", help="Jobs created before this date (ISO 8601)"),
     after: str = typer.Option(None, "--after", help="Jobs created after this date (ISO 8601)"),
@@ -54,7 +55,7 @@ def list_jobs(
 ):
     """List all background jobs with optional filtering and sorting."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         response = client.list_jobs(limit=limit, before=before, after=after, sort=sort)
         
@@ -119,12 +120,13 @@ def list_jobs(
 
 @app.command("get")
 def get_job(
+    ctx: typer.Context,
     job_id: str = typer.Argument(..., help="Job ID to retrieve"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Get details of a specific job."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = get_job_job_id.sync_detailed(job_id=job_id, client=auth_client)
@@ -161,12 +163,13 @@ def get_job(
 
 @app.command("history")
 def job_history(
+    ctx: typer.Context,
     job_id: str = typer.Argument(..., help="Job ID to get history for"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Get history of a specific job."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
         response = get_job_job_id_history.sync_detailed(job_id=job_id, client=auth_client)

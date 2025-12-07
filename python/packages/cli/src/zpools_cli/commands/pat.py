@@ -11,11 +11,12 @@ console = Console()
 
 @app.command("list")
 def list_pats(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """List all Personal Access Tokens."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         response = client.list_pats()
         
@@ -62,6 +63,7 @@ def list_pats(
 
 @app.command("create")
 def create_pat(
+    ctx: typer.Context,
     label: str = typer.Argument(..., help="Label for the new token"),
     expiry: str = typer.Option(None, "--expiry", help="Optional expiry date (YYYY-MM-DD)"),
     tenant_id: str = typer.Option(None, "--tenant-id", help="Optional tenant ID"),
@@ -70,7 +72,7 @@ def create_pat(
 ):
     """Create a new Personal Access Token."""
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         # Validate expiry format if provided
         expiry_date = None
@@ -105,6 +107,7 @@ def create_pat(
 
 @app.command("revoke")
 def revoke_pat(
+    ctx: typer.Context,
     key_id: str = typer.Argument(..., help="Key ID of the token to revoke"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
@@ -115,7 +118,7 @@ def revoke_pat(
             return
 
     try:
-        client = get_authenticated_client()
+        client = get_authenticated_client(ctx.obj)
         
         response = client.revoke_pat(key_id=key_id)
         

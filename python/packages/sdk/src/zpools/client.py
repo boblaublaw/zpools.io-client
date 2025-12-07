@@ -11,33 +11,40 @@ from ._generated.models.post_login_body import PostLoginBody
 
 class ZPoolsClient:
     """
-    High-level client for zpools.io that handles authentication (PAT/JWT)
-    and configuration loading automatically.
+    Pure API client for zpools.io that handles authentication (PAT/JWT).
+    
+    Configuration (RC files, env vars) should be handled by the CLI layer.
+    This class only accepts explicit values.
     """
     
     DEFAULT_API_URL = "https://api.zpools.io/v1"
     
     def __init__(
-        self, 
-        api_url: Optional[str] = None,
+        self,
+        api_url: str = DEFAULT_API_URL,
         username: Optional[str] = None,
         password: Optional[str] = None,
         pat: Optional[str] = None,
-        rc_file: Optional[Path] = None
+        ssh_host: Optional[str] = None,
+        ssh_privkey: Optional[str] = None
     ):
-        self._load_config(rc_file)
+        """
+        Initialize the zpools.io API client.
         
-        # Priority: Explicit Arg > Env Var > RC File
-        self.api_url = api_url or os.getenv("ZPOOL_API_URL") or self.config.get("ZPOOL_API_URL") or self.DEFAULT_API_URL
-        self.username = username or os.getenv("ZPOOL_USER") or self.config.get("ZPOOL_USER")
-        self.pat = pat or os.getenv("ZPOOLPAT") or self.config.get("ZPOOLPAT")
-        
-        # Password is never in RC file for security
-        self.password = password or os.getenv("ZPOOL_PASSWORD")
-        
-        # SSH configuration for ZFS operations
-        self.ssh_host = os.getenv("SSH_HOST") or self.config.get("SSH_HOST")
-        self.ssh_privkey = os.getenv("SSH_PRIVKEY_FILE") or self.config.get("SSH_PRIVKEY_FILE")
+        Args:
+            api_url: API base URL (default: https://api.zpools.io/v1)
+            username: Username for JWT authentication
+            password: Password for JWT authentication
+            pat: Personal Access Token (alternative to JWT)
+            ssh_host: SSH hostname for ZFS operations
+            ssh_privkey: Path to SSH private key file
+        """
+        self.api_url = api_url
+        self.username = username
+        self.password = password
+        self.pat = pat
+        self.ssh_host = ssh_host
+        self.ssh_privkey = ssh_privkey
         
         self._raw_client = Client(base_url=self.api_url)
         self._token_file = self._get_token_file_path()
@@ -45,28 +52,6 @@ class ZPoolsClient:
     def set_password(self, password: str):
         """Set the password for login if not provided during init."""
         self.password = password
-
-    def _load_config(self, rc_path: Optional[Path]):
-        """Load configuration from ~/.config/zpools.io/zpoolrc or specified path."""
-        self.config: Dict[str, str] = {}
-        
-        if rc_path:
-            target = rc_path
-        else:
-            target = Path.home() / ".config" / "zpools.io" / "zpoolrc"
-            
-        if target.exists():
-            # Simple shell-like parsing: KEY="VALUE" or KEY=VALUE
-            with open(target, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-                    if "=" in line:
-                        key, val = line.split("=", 1)
-                        # Strip quotes if present
-                        val = val.strip('"').strip("'")
-                        self.config[key.strip()] = val
 
     def _get_token_file_path(self) -> Path:
         """Determine path for caching JWT tokens (mimics bash script behavior)."""

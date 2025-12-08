@@ -2,6 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
+from zpools_cli.utils import format_error_response
 from zpools._generated.api.billing import (
     get_billing_balance,
     get_billing_ledger,
@@ -44,7 +45,11 @@ def get_balance(
             balance_usd = balance_obj.balance_usd if balance_obj.balance_usd is not UNSET else 0
             console.print(f"[bold]Current Balance:[/bold] ${balance_usd:.2f}")
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
             
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -136,7 +141,11 @@ def get_ledger(
                 )
             console.print(table)
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -168,7 +177,11 @@ def claim_code(
             console.print(f"Added: ${amount/100:.2f}")
             # New balance is not returned in this response model, user can check balance separately
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -204,7 +217,11 @@ def start_payment(
             console.print(f"Please visit this URL to complete payment:")
             console.print(f"[link={url}]{url}[/link]")
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")

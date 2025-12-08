@@ -3,7 +3,7 @@ import json
 import datetime
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client
+from zpools_cli.utils import get_authenticated_client, format_error_response
 from zpools._generated.types import UNSET
 
 app = typer.Typer(help="Manage Personal Access Tokens", no_args_is_help=True)
@@ -56,7 +56,11 @@ def list_pats(
                 )
             console.print(table)
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
             
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -100,7 +104,11 @@ def create_pat(
             console.print(f"Token: [bold]{response.parsed.detail.token}[/bold]")
             console.print("[yellow]Make sure to copy your token now. You won't be able to see it again![/yellow]")
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -133,10 +141,11 @@ def revoke_pat(
             else:
                 console.print(f"[red]PAT {key_id} not found.[/red]")
         else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
-                print(json.dumps({"error": response.content}, indent=2))
+                print(error_msg)
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")

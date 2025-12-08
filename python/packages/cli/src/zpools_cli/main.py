@@ -6,8 +6,9 @@ from zpools import ZPoolsClient
 from zpools._generated.api.authentication import get_hello
 from zpools_cli.commands import zpool, sshkey, pat, job, billing, zfs
 from zpools_cli.config import build_client_config
+from zpools_cli.utils import format_error_response
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True, add_completion=False)
 app.add_typer(zpool.app, name="zpool")
 app.add_typer(sshkey.app, name="sshkey")
 app.add_typer(pat.app, name="pat")
@@ -49,7 +50,8 @@ def hello(ctx: typer.Context):
         if response.status_code == 200:
             console.print(f"[green]Success:[/green] {response.parsed.message}")
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_mode=False)
+            console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
             
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -135,14 +137,16 @@ def completion(
             check=False
         )
         
-        # Use click's completion instead
+        # Use click's completion
         if shell == "bash":
             completion_script = """
-_zpools_completion() {
+_zpcli_completion() {
     local IFS=$'\\n'
     local response
 
-    response=$(env COMP_WORDS="${COMP_WORDS[*]}" COMP_CWORD=$COMP_CWORD _ZPOOLS_COMPLETE=bash_complete $1)
+    response=$(env COMP_WORDS="${COMP_WORDS[*]}" \\
+                   COMP_CWORD=$COMP_CWORD \\
+                   _ZPCLI_COMPLETE=complete_bash $1)
 
     for completion in $response; do
         IFS=',' read type value <<< "$completion"
@@ -161,23 +165,19 @@ _zpools_completion() {
     return 0
 }
 
-_zpools_completion_setup() {
-    complete -o nosort -F _zpools_completion zpools
-}
-
-_zpools_completion_setup;
+complete -o nosort -F _zpcli_completion zpcli
 """
         elif shell == "zsh":
             completion_script = """
-#compdef zpools
+#compdef zpcli
 
-_zpools_completion() {
+_zpcli_completion() {
     local -a completions
     local -a completions_with_descriptions
     local -a response
-    (( ! $+commands[zpools] )) && return 1
+    (( ! $+commands[zpcli] )) && return 1
 
-    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) _ZPOOLS_COMPLETE=zsh_complete zpools)}")
+    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) _ZPCLI_COMPLETE=complete_zsh zpcli)}")
 
     for type key descr in ${response}; do
         if [[ "$type" == "plain" ]]; then
@@ -202,14 +202,14 @@ _zpools_completion() {
     fi
 }
 
-compdef _zpools_completion zpools;
+compdef _zpcli_completion zpcli;
 """
         elif shell == "fish":
             completion_script = """
-function _zpools_completion;
+function _zpcli_completion;
     set -l response;
 
-    for value in (env _ZPOOLS_COMPLETE=fish_complete COMP_WORDS=(commandline -cp) COMP_CWORD=(commandline -t) zpools);
+    for value in (env _ZPCLI_COMPLETE=complete_fish COMP_WORDS=(commandline -cp) COMP_CWORD=(commandline -t) zpcli);
         set response $response $value;
     end;
 
@@ -226,7 +226,7 @@ function _zpools_completion;
     end;
 end;
 
-complete --no-files --command zpools --arguments "(_zpools_completion)";
+complete --no-files --command zpcli --arguments "(_zpcli_completion)";
 """
         else:
             completion_script = "# Powershell completion not yet implemented"
@@ -236,17 +236,17 @@ complete --no-files --command zpools --arguments "(_zpools_completion)";
             home = os.path.expanduser("~")
             
             if shell == "bash":
-                completion_file = os.path.join(home, ".zpools-completion.bash")
+                completion_file = os.path.join(home, ".zpcli-completion.bash")
                 rc_file = os.path.join(home, ".bashrc")
-                source_line = f"\n# zpools completion\n[ -f {completion_file} ] && . {completion_file}\n"
+                source_line = f"\n# zpcli completion\n[ -f {completion_file} ] && . {completion_file}\n"
             elif shell == "zsh":
-                completion_file = os.path.join(home, ".zpools-completion.zsh")
+                completion_file = os.path.join(home, ".zpcli-completion.zsh")
                 rc_file = os.path.join(home, ".zshrc")
-                source_line = f"\n# zpools completion\n[ -f {completion_file} ] && . {completion_file}\n"
+                source_line = f"\n# zpcli completion\n[ -f {completion_file} ] && . {completion_file}\n"
             elif shell == "fish":
                 config_dir = os.path.join(home, ".config", "fish", "completions")
                 os.makedirs(config_dir, exist_ok=True)
-                completion_file = os.path.join(config_dir, "zpools.fish")
+                completion_file = os.path.join(config_dir, "zpcli.fish")
                 rc_file = None
                 source_line = None
             

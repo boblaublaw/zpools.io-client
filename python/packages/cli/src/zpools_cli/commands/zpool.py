@@ -2,7 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client
+from zpools_cli.utils import get_authenticated_client, format_error_response
 from zpools._generated.api.zpools import (
     get_zpools,
     post_zpool,
@@ -113,10 +113,11 @@ def list_zpools(
                 
                 console.print(vol_table)
         else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
-                console.print(response.content.decode("utf-8"))
+                console.print(error_msg)
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
             
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -163,7 +164,8 @@ def create_zpool(
                 except RuntimeError as e:
                     console.print(f"[red]Creation failed: {e}[/red]")
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -197,10 +199,11 @@ def delete_zpool(
             else:
                 console.print(f"[red]ZPool {zpool_id} not found.[/red]")
         else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
-                print(json.dumps({"error": response.content}, indent=2))
+                print(json.dumps({"error": error_msg}, indent=2))
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -250,12 +253,17 @@ def modify_zpool(
                 except Exception as e:
                     console.print(f"[red]Error waiting for completion: {e}[/red]")
         elif response.status_code == 409:
-            console.print(f"[yellow]Conflict:[/yellow] {response.parsed.message if response.parsed else response.content}")
-        else:
-            if json_output:
-                print(json.dumps({"error": response.content}, indent=2))
+            if response.parsed and response.parsed.message:
+                console.print(f"[yellow]Conflict:[/yellow] {response.parsed.message}")
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                error_msg = format_error_response(response.status_code, response.content, json_output)
+                console.print(f"[yellow]Conflict:[/yellow] {error_msg}")
+        else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(json.dumps({"error": error_msg}, indent=2))
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -299,10 +307,11 @@ def scrub_zpool(
                 except RuntimeError as e:
                     console.print(f"[red]Scrub failed: {e}[/red]")
         else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
-                print(json.dumps({"error": response.content}, indent=2))
+                print(error_msg)
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")

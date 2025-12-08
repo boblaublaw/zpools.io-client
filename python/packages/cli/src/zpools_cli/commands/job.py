@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client
+from zpools_cli.utils import get_authenticated_client, format_error_response
 from zpools._generated.api.jobs import (
     get_jobs,
     get_job_job_id,
@@ -113,7 +113,11 @@ def list_jobs(
                 )
             console.print(table)
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
             
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -153,10 +157,11 @@ def get_job(
             else:
                 console.print(f"[red]Job {job_id} not found.[/red]")
         else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
-                print(json.dumps({"error": response.content}, indent=2))
+                print(error_msg)
             else:
-                console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
@@ -206,7 +211,11 @@ def job_history(
                 )
             console.print(table)
         else:
-            console.print(f"[red]Error {response.status_code}:[/red] {response.content}")
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")

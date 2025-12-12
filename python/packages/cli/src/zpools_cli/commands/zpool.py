@@ -138,13 +138,11 @@ def create_zpool(
         
         if response.status_code == 202:
             job_id = response.parsed.detail.job_id
-            zpool_id = response.parsed.detail.id
             
             if json_output and not wait:
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
             elif not wait:
                 console.print(f"[green]ZPool creation started![/green]")
-                console.print(f"ZPool ID: {zpool_id}")
                 console.print(f"Job ID: {job_id}")
             
             # Wait for completion if requested
@@ -158,11 +156,22 @@ def create_zpool(
                     if json_output:
                         print(json.dumps(final_job, indent=2, default=str))
                     else:
-                        console.print(f"[green]ZPool {zpool_id} created successfully![/green]")
+                        job_state = final_job.get('current_status', {}).get('state', 'unknown')
+                        if job_state == 'completed':
+                            console.print(f"[green]Job completed successfully[/green]")
+                            message = final_job.get('current_status', {}).get('message', '')
+                            if 'zpool_id:' in message:
+                                zpool_id = message.split('zpool_id:')[1].strip()
+                                console.print(f"ZPool ID: {zpool_id}")
+                        else:
+                            console.print(f"[yellow]Job finished with state: {job_state}[/yellow]")
+                        console.print(f"Job ID: {job_id}")
                 except TimeoutError:
-                    console.print(f"[red]Timeout waiting for creation to complete[/red]")
+                    console.print(f"[red]Timeout waiting for job to complete[/red]")
+                    console.print(f"Job ID: {job_id}")
                 except RuntimeError as e:
-                    console.print(f"[red]Creation failed: {e}[/red]")
+                    console.print(f"[red]Job failed: {e}[/red]")
+                    console.print(f"Job ID: {job_id}")
         else:
             error_msg = format_error_response(response.status_code, response.content, json_output)
             console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")

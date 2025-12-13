@@ -41,6 +41,16 @@ zpcli --install-completion
 # Restart your shell
 ```
 
+Create configuration file at `~/.config/zpools.io/zpoolrc`:
+```bash
+ZPOOL_USER="your zpools.io username"
+ZPOOL_API_URL="https://api.zpools.io/v1"
+SSH_HOST="ssh.zpools.io"  # Required for ZFS commands
+SSH_PRIVKEY_FILE="/path/to/private/key"  # Required for ZFS commands
+```
+
+**See:** `../README.md` for full configuration details and optional settings.
+
 ## Usage
 
 ```bash
@@ -49,9 +59,12 @@ zpcli job list --limit 10 --sort desc
 
 # Manage zpools
 zpcli zpool list
-zpcli zpool create --size 125 --volume-type gp3
-zpcli zpool modify <zpool_id> --volume-type sc1  # Switch to cold tier
-zpcli zpool modify <zpool_id> --volume-type gp3  # Switch to hot tier
+zpcli zpool create --size 125 --volume-type gp3  # Returns job ID (async)
+zpcli zpool create --size 125 --volume-type gp3 --wait  # Wait for completion
+zpcli zpool modify <zpool_id> --volume-type sc1  # Switch to cold tier (async)
+zpcli zpool modify <zpool_id> --volume-type sc1 --wait  # Wait for completion
+zpcli zpool scrub <zpool_id>  # Returns job ID (async)
+zpcli zpool scrub <zpool_id> --wait  # Wait for completion
 
 # Manage SSH keys
 zpcli sshkey list
@@ -59,7 +72,21 @@ zpcli sshkey add ~/.ssh/id_ed25519.pub
 
 # Check billing
 zpcli billing balance
+
+# ZFS operations (over SSH)
+zpcli zfs list <dataset> [-r|--recursive]
+zpcli zfs snapshot <dataset@snapname>
+zpcli zfs destroy <dataset> [-r|--recursive]
+zpcli zfs recv <dataset> [-F|--force]  # Receives stream from stdin
+zpcli zfs ssh [command...]  # Interactive SSH or run command
 ```
+
+**Note:** ZFS commands require SSH configuration in `~/.config/zpools.io/zpoolrc`:
+- `SSH_HOST` - SSH endpoint (e.g., `ssh.zpools.io`)
+- `SSH_PRIVKEY_FILE` - Path to private key
+- `ZPOOL_USER` - Username for SSH access
+
+**Async Operations:** Commands like `zpool create`, `zpool modify`, and `zpool scrub` are asynchronous by default and return a job ID. Use the `--wait` flag to poll until completion (with timeout).
 
 ## Development
 

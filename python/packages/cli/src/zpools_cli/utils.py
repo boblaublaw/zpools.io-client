@@ -97,3 +97,27 @@ def get_authenticated_client(config: dict) -> ZPoolsClient:
     client.get_authenticated_client()
     
     return client
+
+
+def get_ssh_client(config: dict) -> ZPoolsClient:
+    """
+    Get a ZPoolsClient configured for SSH operations only (no HTTP auth).
+    
+    Used for ZFS commands that communicate via SSH, not the HTTP API.
+    No authentication is performed - only SSH config is loaded.
+    
+    Args:
+        config: Client configuration dict from build_client_config()
+    
+    Returns:
+        ZPoolsClient with SSH configuration (no HTTP authentication)
+    """
+    # Create client with SSH config only - no HTTP authentication needed
+    client = ZPoolsClient(
+        api_url=config["api_url"],
+        username=config["username"],
+        ssh_host=config["ssh_host"],
+        ssh_privkey=config["ssh_privkey"]
+    )
+    
+    return client

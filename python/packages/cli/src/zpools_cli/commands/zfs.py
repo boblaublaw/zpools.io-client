@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 from rich.console import Console
-from zpools import ZPoolsClient
+from zpools_cli.utils import get_ssh_client
 
 app = typer.Typer(help="ZFS operations over SSH", no_args_is_help=True)
 console = Console()
@@ -47,12 +47,13 @@ def ssh_exec(ssh_host: str, privkey: str, username: str, command: List[str], pip
 
 @app.command()
 def list(
+    ctx: typer.Context,
     dataset: str = typer.Argument(..., help="Dataset to list"),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="List recursively")
 ):
     """List ZFS datasets."""
     try:
-        client = ZPoolsClient()
+        client = get_ssh_client(ctx.obj)
         ssh_host, privkey, username = get_ssh_config(client)
         
         cmd = ["zfs", "list"]
@@ -72,11 +73,12 @@ def list(
 
 @app.command()
 def snapshot(
+    ctx: typer.Context,
     snapshot: str = typer.Argument(..., help="Snapshot name (dataset@snapname)")
 ):
     """Create a ZFS snapshot."""
     try:
-        client = ZPoolsClient()
+        client = get_ssh_client(ctx.obj)
         ssh_host, privkey, username = get_ssh_config(client)
         
         cmd = ["zfs", "snapshot", snapshot]
@@ -92,12 +94,13 @@ def snapshot(
 
 @app.command()
 def destroy(
+    ctx: typer.Context,
     dataset: str = typer.Argument(..., help="Dataset or snapshot to destroy"),
     recursive: bool = typer.Option(False, "-r", "--recursive", help="Destroy recursively")
 ):
     """Destroy a ZFS dataset or snapshot."""
     try:
-        client = ZPoolsClient()
+        client = get_ssh_client(ctx.obj)
         ssh_host, privkey, username = get_ssh_config(client)
         
         cmd = ["zfs", "destroy"]
@@ -117,6 +120,7 @@ def destroy(
 
 @app.command()
 def recv(
+    ctx: typer.Context,
     dataset: str = typer.Argument(..., help="Target dataset"),
     force: bool = typer.Option(False, "-F", "--force", help="Force rollback")
 ):
@@ -126,7 +130,7 @@ def recv(
     Example: zfs send localpool/ds@snap | zpcli zfs recv remotepool/ds
     """
     try:
-        client = ZPoolsClient()
+        client = get_ssh_client(ctx.obj)
         ssh_host, privkey, username = get_ssh_config(client)
         
         cmd = ["zfs", "recv"]
@@ -166,7 +170,7 @@ def ssh(
         # Get all remaining args from context
         command = ctx.args if ctx.args else []
         
-        client = ZPoolsClient()
+        client = get_ssh_client(ctx.obj)
         ssh_host, privkey, username = get_ssh_config(client)
         
         exit_code = ssh_exec(ssh_host, privkey, username, command, pipe_stdin=False)

@@ -210,13 +210,8 @@ class ModifyPoller:
             
             # Check if all volumes are done optimizing
             # Volume metadata includes optimization state
-            # We need to check the volume info to see if modifications are complete
-            # The exact structure depends on what list_zpools returns
-            
-            # For now, check if we can find volume info
-            # If volumes are present and have modification state, check them
-            # Otherwise assume complete after first poll (for testing)
-            volumes = zpool.get('volumes', [])
+            # API returns capitalized keys: Volumes, ModState, CanModifyNow
+            volumes = zpool.get('Volumes', zpool.get('volumes', []))
             
             if not volumes:
                 # No volume info means we can't monitor - just return current state
@@ -224,10 +219,13 @@ class ModifyPoller:
             
             all_complete = True
             for vol in volumes:
-                # Check if volume is still optimizing
-                # EBS ModifyVolume operations show state as "optimizing" -> "completed"
-                state = vol.get('modification_state') or vol.get('state')
-                if state == 'optimizing':
+                # Check if volume is still being modified
+                # ModState: "none" (no mod), "modifying" (started), "optimizing" (in progress), "completed" (done), "failed"
+                # Once ModState is "completed" or "none", modification is done (even if CanModifyNow is False due to cooldown)
+                mod_state = vol.get('ModState', vol.get('mod_state'))
+                
+                # Still in progress if modifying or optimizing
+                if mod_state in ('modifying', 'optimizing'):
                     all_complete = False
                     break
             

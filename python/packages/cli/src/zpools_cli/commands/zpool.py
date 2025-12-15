@@ -148,7 +148,8 @@ def create_zpool(
             # Wait for completion if requested
             if wait:
                 from zpools.helpers import JobPoller
-                console.print(f"[yellow]Waiting for creation job {job_id} to complete...[/yellow]")
+                if not json_output:
+                    console.print(f"[yellow]Waiting for creation job {job_id} to complete...[/yellow]")
                 
                 poller = JobPoller(client, job_id, timeout=1800, poll_interval=10)
                 try:
@@ -244,7 +245,8 @@ def modify_zpool(
             # Wait for completion if requested
             if wait:
                 from zpools.helpers import ModifyPoller
-                console.print("[yellow]Waiting for volume modifications to complete...[/yellow]")
+                if not json_output:
+                    console.print("[yellow]Waiting for volume modifications to complete...[/yellow]")
                 
                 def show_progress(zpool_dict):
                     if not json_output:

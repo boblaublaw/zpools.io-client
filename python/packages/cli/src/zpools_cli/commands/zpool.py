@@ -459,13 +459,12 @@ def modify_zpool(
     ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to modify"),
     volume_type: str = typer.Option(None, "--type", help="Target volume type (gp3, sc1)"),
-    size: int = typer.Option(None, "--size", help="New size in GiB (optional)"),
     wait: bool = typer.Option(False, "--wait", help="Wait for modification to complete"),
     resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing modification"),
     timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait or --resume (default: 1800)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
-    """Modify a ZPool's EBS volumes (change type or size)."""
+    """Change a ZPool's EBS volume type (gp3 <-> sc1)."""
     try:
         client = get_authenticated_client(ctx.obj)
         
@@ -493,13 +492,13 @@ def modify_zpool(
             console.print("[red]Error:[/red] --type is required when not using --resume")
             raise typer.Exit(1)
         
-        response = client.modify_zpool(zpool_id, target_volume_type=volume_type, new_size_in_gib=size)
+        response = client.modify_zpool(zpool_id, target_volume_type=volume_type)
         
         if response.status_code == 202:
             if json_output and not wait:
                 print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
             elif not wait:
-                console.print(f"[green]ZPool {zpool_id} modification submitted.[/green]")
+                console.print(f"[green]ZPool {zpool_id} volume type modification submitted.[/green]")
                 if response.parsed and response.parsed.detail:
                     summary = response.parsed.detail.summary
                     console.print(f"Submitted: {summary.submitted}/{summary.discovered} volumes")
@@ -535,6 +534,22 @@ def modify_zpool(
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
+
+@app.command("expand")
+def expand_zpool(
+    ctx: typer.Context,
+    zpool_id: str = typer.Argument(..., help="ZPool ID to expand"),
+    size: int = typer.Option(..., "--size", help="New size in GiB"),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+):
+    """Expand a ZPool's size (Not Yet Implemented)."""
+    console.print("[yellow]ZPool expansion is not yet implemented.[/yellow]")
+    console.print("This feature is planned for a future release.")
+    console.print("\nExpansion will:")
+    console.print("  • Resize EBS volumes")
+    console.print("  • Expand ZFS pool to use new space")
+    console.print("  • Track progress via async job")
+    raise typer.Exit(1)
 
 @app.command("scrub")
 def scrub_zpool(

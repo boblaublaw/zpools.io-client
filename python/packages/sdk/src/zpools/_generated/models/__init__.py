@@ -56,6 +56,7 @@ from .post_zpool_body_new_size_in_gib import PostZpoolBodyNewSizeInGib
 from .post_zpool_body_volume_type import PostZpoolBodyVolumeType
 from .post_zpool_response_202 import PostZpoolResponse202
 from .post_zpool_response_202_detail import PostZpoolResponse202Detail
+from .post_zpool_zpool_id_expand_body import PostZpoolZpoolIdExpandBody
 from .post_zpool_zpool_id_modify_body import PostZpoolZpoolIdModifyBody
 from .post_zpool_zpool_id_modify_body_volume_type import PostZpoolZpoolIdModifyBodyVolumeType
 from .post_zpool_zpool_id_scrub_response_202 import PostZpoolZpoolIdScrubResponse202
@@ -114,6 +115,7 @@ __all__ = (
     "PostZpoolBodyVolumeType",
     "PostZpoolResponse202",
     "PostZpoolResponse202Detail",
+    "PostZpoolZpoolIdExpandBody",
     "PostZpoolZpoolIdModifyBody",
     "PostZpoolZpoolIdModifyBodyVolumeType",
     "PostZpoolZpoolIdScrubResponse202",

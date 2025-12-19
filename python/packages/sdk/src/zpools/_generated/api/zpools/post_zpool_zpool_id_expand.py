@@ -4,20 +4,20 @@ from typing import Any
 import httpx
 
 from ...client import AuthenticatedClient, Client
-from ...models.post_zpool_zpool_id_modify_body import PostZpoolZpoolIdModifyBody
+from ...models.post_zpool_zpool_id_expand_body import PostZpoolZpoolIdExpandBody
 from ...types import Response
 
 
 def _get_kwargs(
     zpool_id: str,
     *,
-    body: PostZpoolZpoolIdModifyBody,
+    body: PostZpoolZpoolIdExpandBody,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
         "method": "post",
-        "url": f"/zpool/{zpool_id}/modify",
+        "url": f"/zpool/{zpool_id}/expand",
     }
 
     _kwargs["json"] = body.to_dict()
@@ -38,7 +38,7 @@ def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Res
     if response.status_code == 404:
         return None
 
-    if response.status_code == 409:
+    if response.status_code == 501:
         return None
 
     return None
@@ -57,15 +57,16 @@ def sync_detailed(
     zpool_id: str,
     *,
     client: AuthenticatedClient,
-    body: PostZpoolZpoolIdModifyBody,
+    body: PostZpoolZpoolIdExpandBody,
 ) -> Response[Any]:
-    """Modify zpool volume type
+    """Expand zpool size (Not Yet Implemented)
 
-     Change the EBS volume type for all volumes in a zpool (e.g., gp3 to sc1 or vice versa).
+     Expand EBS volumes and ZFS pool to use additional space. This operation is planned but not yet
+    available.
 
     Args:
         zpool_id (str):
-        body (PostZpoolZpoolIdModifyBody):
+        body (PostZpoolZpoolIdExpandBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -91,15 +92,16 @@ async def asyncio_detailed(
     zpool_id: str,
     *,
     client: AuthenticatedClient,
-    body: PostZpoolZpoolIdModifyBody,
+    body: PostZpoolZpoolIdExpandBody,
 ) -> Response[Any]:
-    """Modify zpool volume type
+    """Expand zpool size (Not Yet Implemented)
 
-     Change the EBS volume type for all volumes in a zpool (e.g., gp3 to sc1 or vice versa).
+     Expand EBS volumes and ZFS pool to use additional space. This operation is planned but not yet
+    available.
 
     Args:
         zpool_id (str):
-        body (PostZpoolZpoolIdModifyBody):
+        body (PostZpoolZpoolIdExpandBody):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

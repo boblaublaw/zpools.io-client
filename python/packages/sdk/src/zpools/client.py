@@ -320,17 +320,16 @@ class ZPoolsClient:
         auth_client = self.get_authenticated_client()
         return post_zpool_zpool_id_scrub.sync_detailed(client=auth_client, zpool_id=zpool_id)
     
-    def modify_zpool(self, zpool_id: str, target_volume_type: str, new_size_in_gib: int = None):
+    def modify_zpool(self, zpool_id: str, target_volume_type: str):
         """
-        Modify a zpool's EBS volumes (fire-and-forget operation).
+        Change a zpool's EBS volume type (fire-and-forget operation).
         
-        Directly calls EBS ModifyVolume on each volume. Does not create a job.
-        Monitor progress via list_zpools() to see volume optimization status.
+        Directly calls EBS ModifyVolume on each volume to change type (gp3 <-> sc1).
+        Does not create a job. Monitor progress via list_zpools() to see volume optimization status.
         
         Args:
             zpool_id: The zpool_id to modify
-            target_volume_type: Target EBS volume type (gp3, sc1, etc.)
-            new_size_in_gib: Optional new size in GiB (increases only)
+            target_volume_type: Target EBS volume type (gp3 or sc1)
             
         Returns:
             Response with status_code 202 and summary of submitted modifications
@@ -344,14 +343,10 @@ class ZPoolsClient:
         # Convert string to enum type
         vol_type_enum = PostZpoolZpoolIdModifyBodyVolumeType(target_volume_type)
         
-        body_kwargs = {"volume_type": vol_type_enum}
-        if new_size_in_gib is not None:
-            body_kwargs["new_size_in_gib"] = new_size_in_gib
-        
         return post_zpool_zpool_id_modify.sync_detailed(
             client=auth_client,
             zpool_id=zpool_id,
-            body=PostZpoolZpoolIdModifyBody(**body_kwargs)
+            body=PostZpoolZpoolIdModifyBody(volume_type=vol_type_enum)
         )
     
     # Job convenience methods

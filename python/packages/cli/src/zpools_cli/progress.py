@@ -107,6 +107,10 @@ class ProgressMonitor:
                     
                     # Check if complete
                     if check_complete_func(cached_state):
+                        # Do one final render with the completed state
+                        if cached_state is not None:
+                            panel = render_func(cached_state, "✓")
+                            live.update(panel)
                         live.stop()
                         return cached_state
                 

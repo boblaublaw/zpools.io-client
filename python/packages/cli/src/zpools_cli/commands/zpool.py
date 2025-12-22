@@ -556,13 +556,85 @@ def scrub_zpool(
     ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to scrub"),
     wait: bool = typer.Option(False, "--wait", help="Wait for scrub to complete"),
-    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait (default: 1800)"),
+    resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing scrub"),
+    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait or --resume (default: 1800)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Start a scrub on a ZPool."""
     try:
         client = get_authenticated_client(ctx.obj)
         
+        # If --resume, find existing scrub job and monitor it
+        if resume:
+            # List jobs to find a running scrub for this zpool
+            jobs_response = client.list_jobs(limit=100, sort="desc")
+            
+            if jobs_response.status_code != 200:
+                error_msg = format_error_response(jobs_response.status_code, jobs_response.content, json_output)
+                console.print(f"[red]Error fetching jobs:[/red] {error_msg}")
+                return
+            
+            jobs = jobs_response.parsed.detail.jobs
+            scrub_job = None
+            
+            # Find a running scrub job for this zpool
+            for job in jobs:
+                # Get operation type
+                operation = job.operation if job.operation is not UNSET else job.additional_properties.get('job_type', "")
+                
+                # Get current status
+                current_status = job.additional_properties.get('current_status', {})
+                if isinstance(current_status, dict):
+                    status_val = current_status.get('state', 'Unknown')
+                    message = current_status.get('message', '')
+                else:
+                    status_val = 'Unknown'
+                    message = ''
+                
+                # Get parameters to check zpool_id
+                parameters = job.additional_properties.get('parameters', '{}')
+                try:
+                    params_dict = json.loads(parameters) if isinstance(parameters, str) else parameters
+                    job_zpool_id = params_dict.get('zpool_id', '')
+                except:
+                    job_zpool_id = ''
+                
+                # Check if this is a scrub job for our zpool that's still running
+                if operation == 'zpool_scrub' and job_zpool_id == zpool_id and status_val in ('pending', 'running', 'queued', 'in progress'):
+                    scrub_job = job
+                    break
+            
+            if not scrub_job:
+                if json_output:
+                    print(json.dumps({"error": f"No active scrub job found for ZPool {zpool_id}"}, indent=2))
+                else:
+                    console.print(f"[yellow]No active scrub job found for ZPool {zpool_id}[/yellow]")
+                return
+            
+            # Found a running scrub job, monitor it
+            job_id = scrub_job.job_id if scrub_job.job_id is not UNSET else ""
+            
+            if not json_output:
+                console.print(f"[cyan]Resuming monitoring of scrub job {job_id} for ZPool {zpool_id}...[/cyan]")
+            
+            if json_output:
+                from zpools.helpers import JobPoller
+                poller = JobPoller(client, job_id, timeout=timeout, poll_interval=5)
+                final_job = poller.wait_for_completion()
+                print(json.dumps(final_job, indent=2, default=str))
+            else:
+                try:
+                    final_job = wait_for_job_with_progress(
+                        client, job_id, "ZPool scrub", timeout=timeout, poll_interval=5
+                    )
+                except TimeoutError:
+                    console.print(f"[red]Timeout waiting for scrub to complete[/red]")
+                    console.print(f"Job ID: {job_id}")
+                except RuntimeError:
+                    console.print(f"Job ID: {job_id}")
+            return
+        
+        # Normal flow: start a new scrub
         response = client.scrub_zpool(zpool_id)
         
         if response.status_code == 202:

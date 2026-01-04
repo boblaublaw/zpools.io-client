@@ -1,7 +1,7 @@
 import typer
 import json
 import time
-from datetime import datetime, timezone as tz
+from datetime import datetime, timezone, timedelta
 from rich.console import Console, Group
 from rich.table import Table
 from rich.text import Text
@@ -458,13 +458,19 @@ def delete_zpool(
 def modify_zpool(
     ctx: typer.Context,
     zpool_id: str = typer.Argument(..., help="ZPool ID to modify"),
-    volume_type: str = typer.Option(None, "--type", help="Target volume type (gp3, sc1)"),
-    wait: bool = typer.Option(False, "--wait", help="Wait for modification to complete"),
-    resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing modification"),
-    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait or --resume (default: 1800)"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    volume_type: str = typer.Option(None, "--type", help="Target volume type (gp3 or sc1)"),
+    wait: bool = typer.Option(False, "--wait", help="Wait for modification to complete after submission"),
+    wait_until_able: bool = typer.Option(False, "--wait-until-able", help="Wait until cooldown period expires, then submit modification"),
+    resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing modification in progress"),
+    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds for modification monitoring (applies to --wait and --resume only)"),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON response")
 ):
-    """Change a ZPool's EBS volume type (gp3 <-> sc1)."""
+    """Change a ZPool's EBS volume type (gp3 <-> sc1).
+    
+    AWS enforces a 6-hour cooldown between volume modifications. Use --wait-until-able
+    to automatically wait for the cooldown to expire before submitting the modification.
+    The cooldown wait has no timeout since the end time is known; use Ctrl+C to abort if needed.
+    """
     try:
         client = get_authenticated_client(ctx.obj)
         
@@ -491,6 +497,50 @@ def modify_zpool(
         if not volume_type:
             console.print("[red]Error:[/red] --type is required when not using --resume")
             raise typer.Exit(1)
+        
+        # If --wait-until-able, check for cooldown and wait if needed
+        if wait_until_able:
+            list_response = get_zpools.sync_detailed(client=client.get_authenticated_client())
+            if list_response.status_code == 200 and list_response.parsed:
+                zpools = list_response.parsed.detail.zpools.to_dict() if list_response.parsed.detail.zpools else {}
+                zpool = zpools.get(zpool_id, {})
+                volumes = zpool.get('Volumes', [])
+                
+                # Check if any volumes have a recent ModLastTime that would trigger cooldown
+                max_mod_time = None
+                for vol in volumes:
+                    if not vol.get('CanModifyNow', True):
+                        mod_last = vol.get('ModLastTime')
+                        if mod_last:
+                            if isinstance(mod_last, str):
+                                mod_last = datetime.fromisoformat(mod_last.replace('Z', '+00:00'))
+                            if max_mod_time is None or mod_last > max_mod_time:
+                                max_mod_time = mod_last
+                
+                if max_mod_time:
+                    retry_time = max_mod_time + timedelta(hours=6)
+                    now = datetime.now(timezone.utc)
+                    
+                    if retry_time > now:
+                        wait_seconds = (retry_time - now).total_seconds()
+                        hours = int(wait_seconds // 3600)
+                        minutes = int((wait_seconds % 3600) // 60)
+                        retry_str = retry_time.strftime('%Y-%m-%d %H:%M:%S UTC')
+                        
+                        console.print(f"[yellow]Volume is in cooldown period.[/yellow]")
+                        console.print(f"[yellow]Waiting until: {retry_str} (~{hours}h {minutes}m)[/yellow]")
+                        
+                        # Sleep until ready, checking periodically
+                        import time
+                        poll_interval = 60  # Check every minute
+                        while datetime.now(timezone.utc) < retry_time:
+                            remaining = (retry_time - datetime.now(timezone.utc)).total_seconds()
+                            if remaining <= 0:
+                                break
+                            sleep_time = min(poll_interval, remaining)
+                            time.sleep(sleep_time)
+                        
+                        console.print(f"[green]Cooldown period expired. Submitting modification...[/green]")
         
         response = client.modify_zpool(zpool_id, target_volume_type=volume_type)
         
@@ -520,9 +570,60 @@ def modify_zpool(
                     except Exception as e:
                         console.print(f"[red]Error waiting for completion: {e}[/red]")
         elif response.status_code == 409:
-            if response.parsed and response.parsed.message:
-                console.print(f"[yellow]Conflict:[/yellow] {response.parsed.message}")
-            else:
+            # Parse the 409 response to provide helpful wait time information
+            try:
+                # Parse the JSON response directly since the SDK doesn't parse 409 responses
+                conflict_data = json.loads(response.content)
+                message = conflict_data.get('message', 'Conflict occurred')
+                detail = conflict_data.get('detail', {})
+                ineligible = detail.get('ineligible', [])
+                
+                # Check if volumes are in cooldown
+                cooldown_volumes = [v for v in ineligible if v.get('reason') == 'cooldown_or_active_modify']
+                
+                if cooldown_volumes:
+                    # Get volume details from list to find ModLastTime
+                    list_response = get_zpools.sync_detailed(client=client.get_authenticated_client())
+                    if list_response.status_code == 200 and list_response.parsed:
+                        zpools = list_response.parsed.detail.zpools.to_dict() if list_response.parsed.detail.zpools else {}
+                        zpool = zpools.get(zpool_id, {})
+                        volumes = zpool.get('Volumes', [])
+                        
+                        # Find the earliest time we can retry (6 hours after last modification)
+                        earliest_retry = None
+                        
+                        for vol in volumes:
+                            vol_id = vol.get('VolumeId')
+                            if any(cv.get('volume_id') == vol_id for cv in cooldown_volumes):
+                                mod_last = vol.get('ModLastTime')
+                                if mod_last:
+                                    if isinstance(mod_last, str):
+                                        mod_last = datetime.fromisoformat(mod_last.replace('Z', '+00:00'))
+                                    retry_time = mod_last + timedelta(hours=6)
+                                    if earliest_retry is None or retry_time < earliest_retry:
+                                        earliest_retry = retry_time
+                        
+                        if earliest_retry:
+                            now = datetime.now(timezone.utc)
+                            if earliest_retry > now:
+                                wait_time = earliest_retry - now
+                                hours = int(wait_time.total_seconds() // 3600)
+                                minutes = int((wait_time.total_seconds() % 3600) // 60)
+                                retry_str = earliest_retry.strftime('%Y-%m-%d %H:%M:%S UTC')
+                                
+                                console.print(f"[yellow]Conflict:[/yellow] {message}")
+                                console.print(f"[yellow]AWS requires a 6-hour cooldown between volume modifications.[/yellow]")
+                                console.print(f"[yellow]You can retry after: {retry_str} (in ~{hours}h {minutes}m)[/yellow]")
+                            else:
+                                console.print(f"[yellow]Conflict:[/yellow] {message}")
+                        else:
+                            console.print(f"[yellow]Conflict:[/yellow] {message}")
+                    else:
+                        console.print(f"[yellow]Conflict:[/yellow] {message}")
+                else:
+                    console.print(f"[yellow]Conflict:[/yellow] {message}")
+            except Exception as e:
+                # Fallback to simple message if parsing fails
                 error_msg = format_error_response(response.status_code, response.content, json_output)
                 console.print(f"[yellow]Conflict:[/yellow] {error_msg}")
         else:

@@ -26,6 +26,57 @@ app = typer.Typer(help="Manage ZFS pools", no_args_is_help=True)
 console = Console()
 
 
+def calculate_cooldown_info(mod_last_time):
+    """
+    Calculate cooldown information for a volume based on its last modification time.
+    
+    Args:
+        mod_last_time: datetime object or ISO format string of last modification
+        
+    Returns:
+        dict with keys:
+            - in_cooldown (bool): Whether volume is currently in cooldown
+            - retry_time (datetime): When cooldown expires (or None if not in cooldown)
+            - wait_seconds (int): Seconds until cooldown expires (or 0 if not in cooldown)
+            - wait_str (str): Human-readable wait time like "5h 8m"
+            - retry_str (str): Formatted retry time like "2026-01-04 08:54:50 UTC"
+    """
+    if not mod_last_time:
+        return {
+            'in_cooldown': False,
+            'retry_time': None,
+            'wait_seconds': 0,
+            'wait_str': '',
+            'retry_str': ''
+        }
+    
+    if isinstance(mod_last_time, str):
+        mod_last_time = datetime.fromisoformat(mod_last_time.replace('Z', '+00:00'))
+    
+    retry_time = mod_last_time + timedelta(hours=6)
+    now = datetime.now(timezone.utc)
+    
+    if retry_time > now:
+        wait_seconds = (retry_time - now).total_seconds()
+        hours = int(wait_seconds // 3600)
+        minutes = int((wait_seconds % 3600) // 60)
+        return {
+            'in_cooldown': True,
+            'retry_time': retry_time,
+            'wait_seconds': int(wait_seconds),
+            'wait_str': f"{hours}h {minutes}m",
+            'retry_str': retry_time.strftime('%Y-%m-%d %H:%M:%S UTC')
+        }
+    else:
+        return {
+            'in_cooldown': False,
+            'retry_time': retry_time,
+            'wait_seconds': 0,
+            'wait_str': '',
+            'retry_str': ''
+        }
+
+
 def wait_for_job_with_progress(client, job_id: str, operation_name: str, timeout: int = 1800, poll_interval: int = 5) -> dict:
     """
     Wait for a job to complete with live progress animation and history display.
@@ -341,6 +392,17 @@ def list_zpools(
                     mod_state = vol.mod_state if vol.mod_state is not UNSET else vol.additional_properties.get('ModState', 'N/A')
                     mod_progress = vol.mod_progress if vol.mod_progress is not UNSET else vol.additional_properties.get('ModProgress', 'N/A')
                     can_modify = vol.can_modify_now if vol.can_modify_now is not UNSET else vol.additional_properties.get('CanModifyNow', False)
+                    mod_last_time = vol.mod_last_time if vol.mod_last_time is not UNSET else vol.additional_properties.get('ModLastTime')
+                    
+                    # Calculate cooldown info
+                    if can_modify:
+                        modify_status = "Yes"
+                    else:
+                        cooldown = calculate_cooldown_info(mod_last_time)
+                        if cooldown['in_cooldown']:
+                            modify_status = f"In ~{cooldown['wait_str']}"
+                        else:
+                            modify_status = "No"
                     
                     vol_table.add_row(
                         vol_id,
@@ -349,7 +411,7 @@ def list_zpools(
                         state,
                         mod_state,
                         f"{mod_progress}%" if mod_progress != 'N/A' else 'N/A',
-                        "Yes" if can_modify else "No"
+                        modify_status
                     )
                 
                 console.print(vol_table)
@@ -506,41 +568,34 @@ def modify_zpool(
                 zpool = zpools.get(zpool_id, {})
                 volumes = zpool.get('Volumes', [])
                 
-                # Check if any volumes have a recent ModLastTime that would trigger cooldown
-                max_mod_time = None
+                # Find the latest ModLastTime among volumes that can't be modified
+                max_cooldown = None
                 for vol in volumes:
                     if not vol.get('CanModifyNow', True):
                         mod_last = vol.get('ModLastTime')
-                        if mod_last:
-                            if isinstance(mod_last, str):
-                                mod_last = datetime.fromisoformat(mod_last.replace('Z', '+00:00'))
-                            if max_mod_time is None or mod_last > max_mod_time:
-                                max_mod_time = mod_last
+                        cooldown = calculate_cooldown_info(mod_last)
+                        if cooldown['in_cooldown']:
+                            if max_cooldown is None or cooldown['wait_seconds'] > max_cooldown['wait_seconds']:
+                                max_cooldown = cooldown
                 
-                if max_mod_time:
-                    retry_time = max_mod_time + timedelta(hours=6)
-                    now = datetime.now(timezone.utc)
+                if max_cooldown:
+                    console.print(f"[yellow]Volume is in cooldown period.[/yellow]")
+                    console.print(f"[yellow]Waiting until: {max_cooldown['retry_str']} (~{max_cooldown['wait_str']})[/yellow]")
                     
-                    if retry_time > now:
-                        wait_seconds = (retry_time - now).total_seconds()
-                        hours = int(wait_seconds // 3600)
-                        minutes = int((wait_seconds % 3600) // 60)
-                        retry_str = retry_time.strftime('%Y-%m-%d %H:%M:%S UTC')
+                    # Wait strategy: sleep for the full remaining time, then re-check
+                    # This handles clock skew and ensures we don't submit too early
+                    while True:
+                        remaining = (max_cooldown['retry_time'] - datetime.now(timezone.utc)).total_seconds()
+                        if remaining <= 0:
+                            break
                         
-                        console.print(f"[yellow]Volume is in cooldown period.[/yellow]")
-                        console.print(f"[yellow]Waiting until: {retry_str} (~{hours}h {minutes}m)[/yellow]")
+                        # Sleep for the full remaining duration
+                        time.sleep(remaining)
                         
-                        # Sleep until ready, checking periodically
-                        import time
-                        poll_interval = 60  # Check every minute
-                        while datetime.now(timezone.utc) < retry_time:
-                            remaining = (retry_time - datetime.now(timezone.utc)).total_seconds()
-                            if remaining <= 0:
-                                break
-                            sleep_time = min(poll_interval, remaining)
-                            time.sleep(sleep_time)
-                        
-                        console.print(f"[green]Cooldown period expired. Submitting modification...[/green]")
+                        # Re-check to handle any clock drift or early wake
+                        # If still in cooldown, loop will sleep again
+                    
+                    console.print(f"[green]Cooldown period expired. Submitting modification...[/green]")
         
         response = client.modify_zpool(zpool_id, target_volume_type=volume_type)
         
@@ -589,33 +644,22 @@ def modify_zpool(
                         zpool = zpools.get(zpool_id, {})
                         volumes = zpool.get('Volumes', [])
                         
-                        # Find the earliest time we can retry (6 hours after last modification)
-                        earliest_retry = None
+                        # Find the earliest cooldown expiration time
+                        earliest_cooldown = None
                         
                         for vol in volumes:
                             vol_id = vol.get('VolumeId')
                             if any(cv.get('volume_id') == vol_id for cv in cooldown_volumes):
                                 mod_last = vol.get('ModLastTime')
-                                if mod_last:
-                                    if isinstance(mod_last, str):
-                                        mod_last = datetime.fromisoformat(mod_last.replace('Z', '+00:00'))
-                                    retry_time = mod_last + timedelta(hours=6)
-                                    if earliest_retry is None or retry_time < earliest_retry:
-                                        earliest_retry = retry_time
+                                cooldown = calculate_cooldown_info(mod_last)
+                                if cooldown['in_cooldown']:
+                                    if earliest_cooldown is None or cooldown['retry_time'] < earliest_cooldown['retry_time']:
+                                        earliest_cooldown = cooldown
                         
-                        if earliest_retry:
-                            now = datetime.now(timezone.utc)
-                            if earliest_retry > now:
-                                wait_time = earliest_retry - now
-                                hours = int(wait_time.total_seconds() // 3600)
-                                minutes = int((wait_time.total_seconds() % 3600) // 60)
-                                retry_str = earliest_retry.strftime('%Y-%m-%d %H:%M:%S UTC')
-                                
-                                console.print(f"[yellow]Conflict:[/yellow] {message}")
-                                console.print(f"[yellow]AWS requires a 6-hour cooldown between volume modifications.[/yellow]")
-                                console.print(f"[yellow]You can retry after: {retry_str} (in ~{hours}h {minutes}m)[/yellow]")
-                            else:
-                                console.print(f"[yellow]Conflict:[/yellow] {message}")
+                        if earliest_cooldown:
+                            console.print(f"[yellow]Conflict:[/yellow] {message}")
+                            console.print(f"[yellow]AWS requires a 6-hour cooldown between volume modifications.[/yellow]")
+                            console.print(f"[yellow]You can retry after: {earliest_cooldown['retry_str']} (in ~{earliest_cooldown['wait_str']})[/yellow]")
                         else:
                             console.print(f"[yellow]Conflict:[/yellow] {message}")
                     else:

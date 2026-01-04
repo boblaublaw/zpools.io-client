@@ -1,4 +1,4 @@
-"""A client library for accessing ZpoolsAPI-dev"""
+"""A client library for accessing ZpoolsAPI-prod"""
 
 from .client import AuthenticatedClient, Client
 

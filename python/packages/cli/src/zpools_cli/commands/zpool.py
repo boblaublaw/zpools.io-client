@@ -7,6 +7,7 @@ from rich.table import Table
 from zpools_cli.utils import get_authenticated_client, format_error_response
 from zpools_cli.cooldown import calculate_cooldown_info
 from zpools_cli.job_monitor import wait_for_job_with_progress
+from zpools_cli.job_helpers import find_and_resume_job
 from zpools_cli.volume_monitor import wait_for_modify_with_progress
 from zpools_cli.wait_helpers import wait_with_token_refresh
 from zpools._generated.api.zpools import (
@@ -90,7 +91,6 @@ def list_zpools(
                 
                 # Create table for this zpool's volumes
                 vol_table = Table(show_header=True, box=None, padding=(0, 2))
-                vol_table.add_column("Volume ID", style="dim")
                 vol_table.add_column("Size (GiB)", style="green")
                 vol_table.add_column("Type", style="magenta")
                 vol_table.add_column("State", style="yellow")
@@ -100,7 +100,6 @@ def list_zpools(
                 
                 for vol in volumes:
                     # Access SDK model attributes or additional_properties
-                    vol_id = vol.volume_id if vol.volume_id is not UNSET else vol.additional_properties.get('VolumeId', 'N/A')
                     size = vol.size if vol.size is not UNSET else vol.additional_properties.get('Size', 'N/A')
                     vol_type = vol.volume_type if vol.volume_type is not UNSET else vol.additional_properties.get('VolumeType', 'N/A')
                     state = vol.state if vol.state is not UNSET else vol.additional_properties.get('State', 'N/A')
@@ -120,7 +119,6 @@ def list_zpools(
                             modify_status = "No"
                     
                     vol_table.add_row(
-                        vol_id,
                         str(size),
                         str(vol_type),
                         state,
@@ -146,12 +144,30 @@ def create_zpool(
     size: int = typer.Option(125, help="Size in GiB (must be 125 during beta)"),
     volume_type: str = typer.Option("gp3", help="EBS volume type (gp3, sc1)"),
     wait: bool = typer.Option(False, "--wait", help="Wait for creation to complete"),
-    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait (default: 1800)"),
+    resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing creation job"),
+    timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds when using --wait or --resume (default: 1800)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Create a new ZPool."""
     try:
         client = get_authenticated_client(ctx.obj)
+        
+        # If --resume, find existing create job and monitor it
+        if resume:
+            final_job = find_and_resume_job(
+                client,
+                job_type='zpool_create',
+                operation_name='ZPool creation',
+                timeout=timeout,
+                json_output=json_output
+            )
+            # Extract zpool_id from message if available (only in non-JSON mode)
+            if not json_output and final_job:
+                msg = final_job.get('current_status', {}).get('message', '')
+                if 'zpool_id:' in msg:
+                    zpool_id = msg.split('zpool_id:')[1].strip()
+                    console.print(f"ZPool ID: [cyan]{zpool_id}[/cyan]")
+            return
         
         response = client.create_zpool(size_gib=size, volume_type=volume_type)
         
@@ -359,9 +375,9 @@ def modify_zpool(
                         # Find the earliest cooldown expiration time
                         earliest_cooldown = None
                         
-                        for vol in volumes:
-                            vol_id = vol.get('VolumeId')
-                            if any(cv.get('volume_id') == vol_id for cv in cooldown_volumes):
+                        # In MVP: one volume per zpool, so if any cooldown volume matches this zpool, show it
+                        if cooldown_volumes:
+                            for vol in volumes:
                                 mod_last = vol.get('ModLastTime')
                                 cooldown = calculate_cooldown_info(mod_last)
                                 if cooldown['in_cooldown']:
@@ -423,72 +439,14 @@ def scrub_zpool(
         
         # If --resume, find existing scrub job and monitor it
         if resume:
-            # List jobs to find a running scrub for this zpool
-            jobs_response = client.list_jobs(limit=100, sort="desc")
-            
-            if jobs_response.status_code != 200:
-                error_msg = format_error_response(jobs_response.status_code, jobs_response.content, json_output)
-                console.print(f"[red]Error fetching jobs:[/red] {error_msg}")
-                return
-            
-            jobs = jobs_response.parsed.detail.jobs
-            scrub_job = None
-            
-            # Find a running scrub job for this zpool
-            for job in jobs:
-                # Get operation type
-                operation = job.operation if job.operation is not UNSET else job.additional_properties.get('job_type', "")
-                
-                # Get current status
-                current_status = job.additional_properties.get('current_status', {})
-                if isinstance(current_status, dict):
-                    status_val = current_status.get('state', 'Unknown')
-                    message = current_status.get('message', '')
-                else:
-                    status_val = 'Unknown'
-                    message = ''
-                
-                # Get parameters to check zpool_id
-                parameters = job.additional_properties.get('parameters', '{}')
-                try:
-                    params_dict = json.loads(parameters) if isinstance(parameters, str) else parameters
-                    job_zpool_id = params_dict.get('zpool_id', '')
-                except:
-                    job_zpool_id = ''
-                
-                # Check if this is a scrub job for our zpool that's still running
-                if operation == 'zpool_scrub' and job_zpool_id == zpool_id and status_val in ('pending', 'running', 'queued', 'in progress'):
-                    scrub_job = job
-                    break
-            
-            if not scrub_job:
-                if json_output:
-                    print(json.dumps({"error": f"No active scrub job found for ZPool {zpool_id}"}, indent=2))
-                else:
-                    console.print(f"[yellow]No active scrub job found for ZPool {zpool_id}[/yellow]")
-                return
-            
-            # Found a running scrub job, monitor it
-            job_id = scrub_job.job_id if scrub_job.job_id is not UNSET else ""
-            
-            if not json_output:
-                console.print(f"[cyan]Resuming monitoring of scrub job {job_id} for ZPool {zpool_id}...[/cyan]")
-            
-            if json_output:
-                from zpools.helpers import JobPoller
-                poller = JobPoller(client, job_id, timeout=timeout, poll_interval=5)
-                final_job = poller.wait_for_completion()
-                print(json.dumps(final_job, indent=2, default=str))
-            else:
-                try:
-                    final_job = wait_for_job_with_progress(
-                        client, job_id, "ZPool scrub", timeout=timeout, poll_interval=5
-                    )
-                except TimeoutError:
-                    console.print(f"[red]Timeout waiting for scrub to complete[/red]")
-                    console.print(f"Job ID: {job_id}")
-                except RuntimeError:
-                    console.print(f"Job ID: {job_id}")
+            find_and_resume_job(
+                client,
+                job_type='zpool_scrub',
+                operation_name='ZPool scrub',
+                zpool_id=zpool_id,
+                timeout=timeout,
+                json_output=json_output
+            )
             return
         
         # Normal flow: start a new scrub

@@ -24,7 +24,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
         mod_state (str | Unset):
         size (int | Unset):
         state (str | Unset):
-        volume_id (str | Unset):
         volume_type (str | Unset):
     """
 
@@ -35,7 +34,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
     mod_state: str | Unset = UNSET
     size: int | Unset = UNSET
     state: str | Unset = UNSET
-    volume_id: str | Unset = UNSET
     volume_type: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -66,8 +64,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
 
         state = self.state
 
-        volume_id = self.volume_id
-
         volume_type = self.volume_type
 
         field_dict: dict[str, Any] = {}
@@ -87,8 +83,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
             field_dict["Size"] = size
         if state is not UNSET:
             field_dict["State"] = state
-        if volume_id is not UNSET:
-            field_dict["VolumeId"] = volume_id
         if volume_type is not UNSET:
             field_dict["VolumeType"] = volume_type
 
@@ -138,8 +132,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
 
         state = d.pop("State", UNSET)
 
-        volume_id = d.pop("VolumeId", UNSET)
-
         volume_type = d.pop("VolumeType", UNSET)
 
         get_zpools_response_200_detail_zpools_additional_property_volumes_item = cls(
@@ -150,7 +142,6 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
             mod_state=mod_state,
             size=size,
             state=state,
-            volume_id=volume_id,
             volume_type=volume_type,
         )
 

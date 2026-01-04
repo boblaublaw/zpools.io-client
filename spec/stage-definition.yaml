@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: ZpoolsAPI-prod
-  version: 2025-11-26 06:56:44UTC
+  version: 2025-12-19 03:39:30UTC
 servers:
 - url: https://api.zpools.io/v1
 tags:
@@ -679,8 +679,6 @@ paths:
                                     type: integer
                                   State:
                                     type: string
-                                  VolumeId:
-                                    type: string
                                   VolumeType:
                                     type: string
                                 type: object
@@ -770,9 +768,9 @@ paths:
       security:
       - CognitoAuthorizer: []
       - ComboAuthorizer: []
-      summary: Modify zpool configuration
-      description: Modify zpool settings such as size, adding disks, or changing volume
-        types.
+      summary: Modify zpool volume type
+      description: Change the EBS volume type for all volumes in a zpool (e.g., gp3
+        to sc1 or vice versa).
       tags:
       - Zpools
       parameters:
@@ -786,19 +784,67 @@ paths:
         content:
           application/json:
             example:
-              new_size_in_gib: 125
-              volume_type: gp3
+              volume_type: sc1
             schema:
               properties:
-                new_size_in_gib:
-                  description: New size in GiB (increases only)
-                  type: integer
                 volume_type:
-                  description: EBS volume type
+                  description: Target EBS volume type
                   enum:
                   - gp3
                   - sc1
                   type: string
+              required:
+              - volume_type
+              type: object
+        required: true
+    parameters:
+    - name: zpool_id
+      in: path
+      description: Generated path parameter for zpool_id
+      required: true
+      schema:
+        type: string
+  /zpool/{zpool_id}/expand:
+    post:
+      responses:
+        default:
+          description: Default response for POST /zpool/{zpool_id}/expand
+        '202':
+          description: Expansion job started (future implementation)
+        '400':
+          description: Invalid expansion request
+        '404':
+          description: Zpool not found
+        '501':
+          description: Not implemented - this feature is planned for a future release
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Expand zpool size (Not Yet Implemented)
+      description: Expand EBS volumes and ZFS pool to use additional space. This operation
+        is planned but not yet available.
+      tags:
+      - Zpools
+      parameters:
+      - description: ID of the zpool to expand
+        in: path
+        name: zpool_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              new_size_in_gib: 150
+            schema:
+              properties:
+                new_size_in_gib:
+                  description: New size in GiB (increases only)
+                  minimum: 125
+                  type: integer
+              required:
+              - new_size_in_gib
               type: object
         required: true
     parameters:

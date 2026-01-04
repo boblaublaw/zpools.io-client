@@ -75,28 +75,64 @@ def get_authenticated_client(config: dict) -> ZPoolsClient:
     Returns:
         ZPoolsClient with valid authentication
     """
-    # Create client with resolved config
+    # If PAT is provided, use it directly (no password needed)
+    if config["pat"]:
+        return ZPoolsClient(
+            api_url=config["api_url"],
+            pat=config["pat"],
+            ssh_host=config["ssh_host"],
+            ssh_privkey=config["ssh_privkey"]
+        )
+    
+    # For JWT auth, we need username (password optional if cached token exists)
+    username = config["username"]
+    password = config["password"]
+    api_url = config["api_url"]
+    
+    # Extract domain from API URL for password prompt
+    # e.g., "https://api.zpools.io/v1" -> "zpools.io"
+    # e.g., "https://api.dev.zpools.io/v1" -> "dev.zpools.io"
+    domain = api_url.replace("https://", "").replace("http://", "").split("/")[0]
+    if domain.startswith("api."):
+        domain = domain[4:]  # Remove "api." prefix
+    
+    # Prompt for username if missing
+    if not username:
+        username = typer.prompt("Username")
+    
+    # Try to create client - it will use cached token if available
+    # Only prompt for password if login fails
     client = ZPoolsClient(
-        api_url=config["api_url"],
-        username=config["username"],
-        password=config["password"],
-        pat=config["pat"],
+        api_url=api_url,
+        username=username,
+        password=password,
+        pat=None,
         ssh_host=config["ssh_host"],
         ssh_privkey=config["ssh_privkey"]
     )
     
-    # Check if we need to login (if no PAT and no valid cached token)
-    if not client.pat and not client._get_cached_token():
-        if not client.password:
-            # Prompt for credentials if missing
-            if not client.username:
-                client.username = typer.prompt("Username")
-            client.set_password(typer.prompt("Password", hide_input=True))
-    
-    # This will trigger login if needed
-    client.get_authenticated_client()
-    
-    return client
+    # Try to authenticate - will use cached token if valid
+    try:
+        client.get_authenticated_client()
+        return client
+    except Exception as e:
+        # If authentication failed and we don't have a password, prompt for it
+        if not password:
+            password = typer.prompt(f"{domain} password", hide_input=True)
+            # Recreate client with password
+            client = ZPoolsClient(
+                api_url=api_url,
+                username=username,
+                password=password,
+                pat=None,
+                ssh_host=config["ssh_host"],
+                ssh_privkey=config["ssh_privkey"]
+            )
+            client.get_authenticated_client()
+            return client
+        else:
+            # Had password but still failed - re-raise
+            raise
 
 
 def get_ssh_client(config: dict) -> ZPoolsClient:

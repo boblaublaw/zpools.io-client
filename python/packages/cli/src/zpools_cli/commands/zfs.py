@@ -9,8 +9,8 @@ from zpools_cli.utils import get_ssh_client
 app = typer.Typer(help="ZFS operations over SSH", no_args_is_help=True)
 console = Console()
 
-def get_ssh_config(client):
-    """Extract SSH configuration from client."""
+def get_ssh_config(client, username):
+    """Extract SSH configuration from client and config."""
     if not client.ssh_host:
         console.print("[red]Error:[/red] SSH_HOST not configured. Set in ~/.config/zpools.io/zpoolrc or export SSH_HOST")
         raise typer.Exit(1)
@@ -24,11 +24,11 @@ def get_ssh_config(client):
         console.print(f"[red]Error:[/red] SSH private key not found: {privkey_path}")
         raise typer.Exit(1)
     
-    if not client.username:
+    if not username:
         console.print("[red]Error:[/red] ZPOOL_USER not configured. Set in ~/.config/zpools.io/zpoolrc or export ZPOOL_USER")
         raise typer.Exit(1)
     
-    return client.ssh_host, str(privkey_path), client.username
+    return client.ssh_host, str(privkey_path), username
 
 def ssh_exec(ssh_host: str, privkey: str, username: str, command: List[str], pipe_stdin: bool = False):
     """Execute command via SSH."""
@@ -54,7 +54,7 @@ def list(
     """List ZFS datasets."""
     try:
         client = get_ssh_client(ctx.obj)
-        ssh_host, privkey, username = get_ssh_config(client)
+        ssh_host, privkey, username = get_ssh_config(client, ctx.obj["username"])
         
         cmd = ["zfs", "list"]
         if recursive:
@@ -79,7 +79,7 @@ def snapshot(
     """Create a ZFS snapshot."""
     try:
         client = get_ssh_client(ctx.obj)
-        ssh_host, privkey, username = get_ssh_config(client)
+        ssh_host, privkey, username = get_ssh_config(client, ctx.obj["username"])
         
         cmd = ["zfs", "snapshot", snapshot]
         exit_code = ssh_exec(ssh_host, privkey, username, cmd)
@@ -101,7 +101,7 @@ def destroy(
     """Destroy a ZFS dataset or snapshot."""
     try:
         client = get_ssh_client(ctx.obj)
-        ssh_host, privkey, username = get_ssh_config(client)
+        ssh_host, privkey, username = get_ssh_config(client, ctx.obj["username"])
         
         cmd = ["zfs", "destroy"]
         if recursive:
@@ -131,7 +131,7 @@ def recv(
     """
     try:
         client = get_ssh_client(ctx.obj)
-        ssh_host, privkey, username = get_ssh_config(client)
+        ssh_host, privkey, username = get_ssh_config(client, ctx.obj["username"])
         
         cmd = ["zfs", "recv"]
         if force:
@@ -171,7 +171,7 @@ def ssh(
         command = ctx.args if ctx.args else []
         
         client = get_ssh_client(ctx.obj)
-        ssh_host, privkey, username = get_ssh_config(client)
+        ssh_host, privkey, username = get_ssh_config(client, ctx.obj["username"])
         
         exit_code = ssh_exec(ssh_host, privkey, username, command, pipe_stdin=False)
         if exit_code != 0:

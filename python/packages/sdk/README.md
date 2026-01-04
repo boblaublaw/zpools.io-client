@@ -217,17 +217,51 @@ except Exception as e:
 
 ## Development
 
-This SDK is auto-generated from the zpools.io OpenAPI specification. The wrapper class (`ZPoolsClient`) provides a convenient high-level interface while the generated client (`_generated/`) handles low-level API communication.
+This SDK uses a clean, modular architecture with separation of concerns.
 
 ### Structure
 
 ```
 src/zpools/
-├── __init__.py          # Package exports
-├── client.py            # High-level ZPoolsClient wrapper
-├── helpers.py           # Utility functions
-└── _generated/          # Auto-generated API client (do not edit)
+├── __init__.py              # Package exports (ZPoolsClient)
+├── client.py                # Main client coordinator (~60 lines)
+├── auth.py                  # Authentication & token management
+├── helpers.py               # Polling utilities (JobPoller, ModifyPoller)
+├── api/                     # API operation modules
+│   ├── pats.py              # Personal Access Token operations
+│   ├── sshkeys.py           # SSH key management operations
+│   ├── zpools.py            # ZPool management operations
+│   ├── jobs.py              # Job management operations
+│   ├── billing.py           # Billing operations
+│   └── zfs_operations.py    # SSH/ZFS operations
+└── _generated/              # Auto-generated API client (do not edit)
 ```
+
+### Architecture
+
+The SDK uses a **mixin-based architecture** for clean separation:
+
+- **`client.py`**: Thin coordinator that inherits from all operation mixins
+- **`auth.py`**: Encapsulates all authentication logic (JWT/PAT, token caching)
+- **`api/*`**: Each resource type (zpools, jobs, pats, etc.) in its own focused module
+- **Mixins**: Each API module provides a mixin class that `ZPoolsClient` inherits from
+
+**Benefits**:
+- Each resource type isolated in ~50-100 line files
+- Easy to find and modify specific operations
+- Clean separation of concerns
+- Highly testable components
+- No leaky abstractions
+
+### Token Caching
+
+JWT tokens are automatically cached in `/dev/shm` (or temp directory) for performance:
+- Tokens are valid for 1 hour
+- Cached tokens are reused until expiration
+- Login only occurs when needed
+- File permissions are set to 600 (user read/write only)
+
+For long-running operations that span multiple hours, the CLI implements periodic token refresh to keep credentials valid.
 
 ## Links
 

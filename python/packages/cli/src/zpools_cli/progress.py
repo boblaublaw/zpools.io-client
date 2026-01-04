@@ -18,7 +18,7 @@ class ProgressMonitor:
     def __init__(
         self,
         console: Console,
-        poll_interval: int = 10,
+        poll_interval: int = 60,
         timeout: int = 1800,
         refresh_per_second: int = 4,
         spinner_update_interval: int = 2

@@ -189,7 +189,7 @@ def claim_code(
 @app.command("start")
 def start_payment(
     ctx: typer.Context,
-    amount: int = typer.Argument(..., help="Amount in dollars to add (1-100)"),
+    amount: int = typer.Argument(..., help="Amount in dollars to add (minimum $1)"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
     """Start a payment session to add credits."""
@@ -198,9 +198,9 @@ def start_payment(
         client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
-        # Validate amount (API accepts 1-100)
-        if amount < 1 or amount > 100:
-             console.print("[yellow]Amount must be between $1 and $100[/yellow]")
+        # Validate amount (API requires minimum $1)
+        if amount < 1:
+             console.print("[yellow]Amount must be at least $1[/yellow]")
              return
 
         body = PostDodoStartBody(quantity=amount)

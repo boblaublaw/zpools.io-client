@@ -310,11 +310,24 @@ def modify_zpool(
                                 max_cooldown = cooldown
                 
                 if max_cooldown:
-                    console.print(f"[yellow]Volume is in cooldown period.[/yellow]")
-                    console.print(f"[yellow]Waiting until: {max_cooldown['retry_str']} (~{max_cooldown['wait_str']})[/yellow]")
+                    retry_time = max_cooldown['retry_time']
+                    # Ensure timezone-aware (should already be UTC from cooldown calculation)
+                    if retry_time.tzinfo is None:
+                        retry_time = retry_time.replace(tzinfo=timezone.utc)
+                    retry_time_local = retry_time.astimezone()
+                    retry_time_utc_str = retry_time.strftime('%Y-%m-%d %H:%M:%S UTC')
+                    retry_time_local_str = retry_time_local.strftime('%Y-%m-%d %H:%M:%S %Z')
+                    
+                    # Create table for cooldown wait status
+                    cooldown_table = Table(show_header=False, box=None, padding=(0, 2))
+                    cooldown_table.add_column(style="yellow", width=20)
+                    cooldown_table.add_column(style="white")
+                    cooldown_table.add_row("[yellow]Status:[/yellow]", "[yellow]Volume is in cooldown period[/yellow]")
+                    cooldown_table.add_row("[yellow]Waiting until:[/yellow]", f"[white]{retry_time_utc_str} / {retry_time_local_str}[/white]")
+                    console.print(cooldown_table)
                     
                     # Wait with periodic token refresh (shows progress if interactive terminal)
-                    wait_with_token_refresh(client, max_cooldown['wait_seconds'])
+                    wait_with_token_refresh(client, max_cooldown['wait_seconds'], console=console)
                     
                     # After long wait, ensure we have a fresh token for the modify call
                     try:
@@ -323,7 +336,9 @@ def modify_zpool(
                         # Token refresh failed - recreate client to force re-authentication
                         client = get_authenticated_client(ctx.obj)
                     
-                    console.print(f"[green]Cooldown period expired. Submitting modification...[/green]")
+                    console.print()
+                    console.print("[green]✓ Cooldown period expired. Submitting modification...[/green]")
+                    console.print()
         
         response = client.modify_zpool(zpool_id, target_volume_type=volume_type)
         

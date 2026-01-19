@@ -61,25 +61,31 @@ def wait_with_token_refresh(client, duration_seconds: float, console: Optional[C
             console.print(table)
             first_iteration = False
         
-        # Sleep until next event (end of wait, refresh time, or max 60s)
-        sleep_time = min(remaining, max(0, next_refresh - time.time()), 60)
-        if sleep_time > 0:
-            time.sleep(sleep_time)
+        # Calculate time until next refresh
+        current_time = time.time()
+        time_until_refresh = next_refresh - current_time
         
-        # Refresh if it's time
-        if time.time() >= next_refresh:
+        # Refresh if it's time (check with small tolerance for timing precision)
+        if time_until_refresh <= 1:  # Within 1 second of refresh time
             try:
                 client.get_authenticated_client()
+                # Update next_refresh before showing output
+                next_refresh = current_time + refresh_interval
                 if show_progress:
-                    next_refresh = time.time() + refresh_interval
                     refresh_time_utc = datetime.fromtimestamp(next_refresh, tz=timezone.utc)
                     refresh_time_local = refresh_time_utc.astimezone()
                     console.print("[green]Token refreshed.[/green]")
                     table = format_time_table(refresh_time_utc, refresh_time_local)
                     console.print(table)
-                else:
-                    next_refresh = time.time() + refresh_interval
-            except Exception:
-                # Silent failure - will retry on next interval
-                pass
+            except Exception as e:
+                # Log error but continue - will retry on next iteration
+                if show_progress:
+                    console.print(f"[yellow]Token refresh failed, will retry: {e}[/yellow]")
+                # Set next_refresh to retry in 1 minute instead of 50 minutes
+                next_refresh = current_time + 60
+        else:
+            # Sleep until next event (end of wait, refresh time, or max 60s)
+            sleep_time = min(remaining, max(0, time_until_refresh), 60)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
 

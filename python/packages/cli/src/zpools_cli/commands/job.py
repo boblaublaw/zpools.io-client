@@ -3,7 +3,8 @@ import json
 from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client, format_error_response
+from zpools_cli.utils import get_authenticated_client, format_error_response, is_interactive
+from zpools_cli.job_monitor import wait_for_job_with_progress
 from zpools._generated.api.jobs import (
     get_jobs,
     get_job_job_id,
@@ -170,13 +171,88 @@ def get_job(
 def job_history(
     ctx: typer.Context,
     job_id: str = typer.Argument(..., help="Job ID to get history for"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    watch: bool = typer.Option(False, "--watch", help="Poll job until completion (requires interactive terminal)"),
+    timeout: int = typer.Option(1800, "--timeout", help="Maximum time to wait in seconds (only used with --watch)"),
+    poll_interval: int = typer.Option(5, "--poll-interval", help="Time between polls in seconds (only used with --watch)")
 ):
     """Get history of a specific job."""
+    # Validation for --watch flag
+    if watch and json_output:
+        console.print("[red]Error:[/red] --watch and --json cannot be used together. Use --watch for interactive monitoring or --json for one-time JSON output.")
+        raise typer.Exit(1)
+    
+    if watch and not is_interactive():
+        console.print("[red]Error:[/red] --watch requires an interactive terminal. Detected non-interactive session (stdout is not a TTY).")
+        raise typer.Exit(1)
+    
     try:
         client = get_authenticated_client(ctx.obj)
         auth_client = client.get_authenticated_client()
         
+        # If --watch is enabled, use the job monitor
+        if watch:
+            # First get the job to check its current state and extract job type
+            job_response = client.get_job(job_id)
+            
+            if job_response.status_code == 404:
+                console.print(f"[red]Job {job_id} not found.[/red]")
+                raise typer.Exit(1)
+            elif job_response.status_code != 200:
+                error_msg = format_error_response(job_response.status_code, job_response.content, False)
+                console.print(f"[red]Error {job_response.status_code}:[/red] {error_msg}")
+                raise typer.Exit(1)
+            
+            # Extract job data from response
+            job_data = job_response.parsed.detail.additional_properties.get('job')
+            if not job_data:
+                console.print(f"[red]Error:[/red] Job {job_id} response missing 'job' field")
+                raise typer.Exit(1)
+            
+            # Get job type for operation name
+            operation_name = job_data.get('job_type', 'Job')
+            
+            # Check current job state
+            current_status = job_data.get('current_status', {})
+            job_state = current_status.get('state', '')
+            message = current_status.get('message', '')
+            
+            # Handle terminal states
+            if job_state == 'succeeded':
+                if message:
+                    console.print(f"[green]Job {job_id} already succeeded:[/green] {message}")
+                else:
+                    console.print(f"[green]Job {job_id} already succeeded.[/green]")
+                return
+            elif job_state == 'failed':
+                if message:
+                    console.print(f"[red]Job {job_id} already failed:[/red] {message}")
+                else:
+                    console.print(f"[red]Job {job_id} already failed.[/red]")
+                raise typer.Exit(1)
+            elif job_state == 'cancelled':
+                if message:
+                    console.print(f"[yellow]Job {job_id} was cancelled:[/yellow] {message}")
+                else:
+                    console.print(f"[yellow]Job {job_id} was cancelled.[/yellow]")
+                raise typer.Exit(1)
+            
+            # Job is still running, start watching
+            try:
+                wait_for_job_with_progress(
+                    client, job_id, operation_name,
+                    timeout=timeout, poll_interval=poll_interval
+                )
+            except TimeoutError:
+                console.print(f"[red]Timeout waiting for job {job_id} to complete[/red]")
+                raise typer.Exit(1)
+            except RuntimeError as e:
+                # RuntimeError is raised when job fails - message already printed by wait_for_job_with_progress
+                raise typer.Exit(1)
+            
+            return
+        
+        # Default behavior: show history once
         response = get_job_job_id_history.sync_detailed(job_id=job_id, client=auth_client)
         
         if response.status_code == 200:
@@ -217,5 +293,7 @@ def job_history(
             else:
                 console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")

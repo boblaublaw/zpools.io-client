@@ -65,13 +65,11 @@ def wait_for_job_with_progress(client, job_id: str, operation_name: str, timeout
         # Build history table (show last 10 events)
         history_table = Table(show_header=True, box=None, padding=(0, 1))
         history_table.add_column("Time", style="dim", width=8)
-        history_table.add_column("Event", style="cyan")
         history_table.add_column("Message", style="white")
         
         recent_history = history[-10:] if len(history) > 10 else history
         for event in recent_history:
             timestamp = event.get('timestamp', '')
-            event_type = event.get('event_type', '')
             event_msg = event.get('message', '')
             
             # Calculate relative time
@@ -88,7 +86,7 @@ def wait_for_job_with_progress(client, job_id: str, operation_name: str, timeout
             except:
                 time_str = ""
             
-            history_table.add_row(time_str, event_type, event_msg)
+            history_table.add_row(time_str, event_msg)
         
         # Combine into panel
         content = Group(

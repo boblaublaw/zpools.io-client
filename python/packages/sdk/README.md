@@ -82,6 +82,14 @@ print(f"PAT: {pat.key}")
 client = ZPoolsClient(pat=pat.key)
 ```
 
+## Storage Units
+
+All storage sizes in the zpools.io API use **GiB (gibibytes, 1024³ bytes)**. This is the binary unit, distinct from decimal GB (1000³ bytes).
+
+- A 125 GiB volume = 134,217,728,000 bytes
+- API parameters: `size_gib`, `new_size_in_gib`
+- Response fields: `Size` (in GiB)
+
 ## API Reference
 
 ### ZPool Operations

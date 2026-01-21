@@ -65,7 +65,11 @@ zpcli zpool modify <zpool_id> --volume-type sc1  # Switch to cold tier (async)
 zpcli zpool modify <zpool_id> --volume-type sc1 --wait  # Wait for completion
 zpcli zpool scrub <zpool_id>  # Returns job ID (async)
 zpcli zpool scrub <zpool_id> --wait  # Wait for completion
+```
 
+**Storage Units:** All size values (e.g., `--size 125`) use GiB (1024³ bytes).
+
+```bash
 # Manage SSH keys
 zpcli sshkey list
 zpcli sshkey add ~/.ssh/id_ed25519.pub

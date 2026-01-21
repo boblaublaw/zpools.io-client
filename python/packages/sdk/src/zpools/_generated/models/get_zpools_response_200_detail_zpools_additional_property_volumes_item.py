@@ -22,7 +22,7 @@ class GetZpoolsResponse200DetailZpoolsAdditionalPropertyVolumesItem:
         mod_last_time (datetime.datetime | None | Unset):
         mod_progress (int | None | Unset):
         mod_state (str | Unset):
-        size (int | Unset):
+        size (int | Unset): Volume size in GiB (1024³ bytes)
         state (str | Unset):
         volume_type (str | Unset):
     """

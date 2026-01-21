@@ -676,6 +676,7 @@ paths:
                                   ModState:
                                     type: string
                                   Size:
+                                    description: Volume size in GiB (1024³ bytes)
                                     type: integer
                                   State:
                                     type: string

@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
-  title: ZpoolsAPI-prod
-  version: 2025-12-19 03:39:30UTC
+  title: ZpoolsAPI
+  version: 2026-01-22 04:46:49UTC
 servers:
 - url: https://api.zpools.io/v1
 tags:
@@ -225,6 +225,126 @@ paths:
           maximum: 5000
           minimum: 1
           type: integer
+  /billing/summary:
+    get:
+      responses:
+        default:
+          description: Default response for GET /billing/summary
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      note:
+                        description: Clarification about ending_balance vs current
+                          balance
+                        type: string
+                      summary:
+                        properties:
+                          credits:
+                            items:
+                              properties:
+                                amount_usd:
+                                  type: number
+                                note:
+                                  type: string
+                                source:
+                                  type: string
+                                ts:
+                                  type: string
+                              type: object
+                            type: array
+                          period:
+                            properties:
+                              from_date:
+                                type: string
+                              to_date:
+                                type: string
+                            type: object
+                          storage_charges:
+                            items:
+                              properties:
+                                daily_rate:
+                                  type: number
+                                from_ts:
+                                  type: string
+                                hourly_rate:
+                                  type: number
+                                hours:
+                                  type: integer
+                                size_gb:
+                                  type: integer
+                                to_ts:
+                                  type: string
+                                total_charges:
+                                  type: number
+                                volume_type:
+                                  type: string
+                                zpool_id:
+                                  type: string
+                              type: object
+                            type: array
+                          time_of_use_charges:
+                            items:
+                              properties:
+                                amount_usd:
+                                  type: number
+                                note:
+                                  type: string
+                                source:
+                                  type: string
+                                ts:
+                                  type: string
+                                zpool_id:
+                                  type: string
+                              type: object
+                            type: array
+                          totals:
+                            properties:
+                              credits_applied:
+                                type: number
+                              ending_balance:
+                                type: number
+                              period_net:
+                                type: number
+                              storage_charges:
+                                type: number
+                              time_of_use_charges:
+                                type: number
+                            type: object
+                        type: object
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Billing summary retrieved
+        '400':
+          description: Invalid date format
+      security:
+      - CognitoAuthorizer: []
+      summary: Get billing summary
+      description: Retrieve aggregated billing summary grouped by zpool and rate period.
+        Groups hourly storage charges into periods, lists time-of-use charges (scrub
+        jobs, egress) separately, and calculates totals.
+      tags:
+      - Billing
+      parameters:
+      - description: Start date (YYYY-MM-DD format)
+        in: query
+        name: since
+        required: false
+        schema:
+          format: date
+          type: string
+      - description: End date (YYYY-MM-DD format)
+        in: query
+        name: until
+        required: false
+        schema:
+          format: date
+          type: string
   /codes/claim:
     post:
       responses:
@@ -358,7 +478,6 @@ paths:
               properties:
                 quantity:
                   description: Payment amount in dollars
-                  maximum: 100
                   minimum: 1
                   type: integer
               required:

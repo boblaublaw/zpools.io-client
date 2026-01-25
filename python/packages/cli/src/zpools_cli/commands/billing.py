@@ -6,6 +6,7 @@ from zpools_cli.utils import format_error_response
 from zpools._generated.api.billing import (
     get_billing_balance,
     get_billing_ledger,
+    get_billing_summary,
     post_codes_claim,
     post_dodo_start
 )
@@ -125,7 +126,11 @@ def get_ledger(
                 note = item.note if item.note is not UNSET else ""
                 
                 # Format amount with color
-                amount_str = f"${amount_usd:.2f}"
+                # Show full precision for partial cents, 2 decimals for larger amounts
+                if abs(amount_usd) < 0.01 and amount_usd != 0:
+                    amount_str = f"${amount_usd:.6f}"
+                else:
+                    amount_str = f"${amount_usd:.2f}"
                 if amount_usd > 0:
                     amount_str = f"[green]+{amount_str}[/green]"
                 elif amount_usd < 0:
@@ -149,6 +154,173 @@ def get_ledger(
 
     except Exception as e:
         console.print(f"[red]An error occurred:[/red] {e}")
+
+
+@app.command("summary")
+def get_summary(
+    ctx: typer.Context,
+    since: str = typer.Option(None, help="Start date (YYYY-MM-DD)"),
+    until: str = typer.Option(None, help="End date (YYYY-MM-DD)"),
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+):
+    """View aggregated billing summary grouped by zpool and rate period."""
+    try:
+        from zpools_cli.utils import get_authenticated_client
+        client = get_authenticated_client(ctx.obj)
+        auth_client = client.get_authenticated_client()
+
+        # Parse dates if provided
+        since_date = None
+        if since:
+            try:
+                since_date = datetime.datetime.strptime(since, "%Y-%m-%d").date()
+            except ValueError:
+                console.print("[red]Invalid date format for --since. Use YYYY-MM-DD[/red]")
+                return
+
+        until_date = None
+        if until:
+            try:
+                until_date = datetime.datetime.strptime(until, "%Y-%m-%d").date()
+            except ValueError:
+                console.print("[red]Invalid date format for --until. Use YYYY-MM-DD[/red]")
+                return
+
+        # Build kwargs for API call
+        kwargs = {}
+        if since_date:
+            kwargs["since"] = since_date
+        if until_date:
+            kwargs["until"] = until_date
+
+        response = get_billing_summary.sync_detailed(client=auth_client, **kwargs)
+
+        if response.status_code == 200:
+            if json_output:
+                print(json.dumps(response.parsed.to_dict(), indent=2, default=str))
+                return
+
+            summary = response.parsed.detail.summary
+            if not summary or isinstance(summary, type(UNSET)):
+                console.print("[yellow]Summary information unavailable.[/yellow]")
+                return
+
+            # Period info
+            period = summary.period if summary.period is not UNSET else None
+            if period:
+                from_date = period.from_date if period.from_date is not UNSET else "all time"
+                to_date = period.to_date if period.to_date is not UNSET else "present"
+                console.print(f"\n[bold]Billing Summary[/bold] ({from_date} to {to_date})\n")
+
+            # Storage Charges
+            storage_charges = summary.storage_charges if summary.storage_charges is not UNSET else []
+            if storage_charges:
+                table = Table(title="Storage Charges")
+                table.add_column("Zpool ID", style="cyan")
+                table.add_column("Type", style="yellow")
+                table.add_column("Size", style="green")
+                table.add_column("Hourly Rate", style="blue")
+                table.add_column("Daily Rate", style="blue")
+                table.add_column("Hours", style="magenta")
+                table.add_column("Total", style="red")
+                table.add_column("Period", style="white")
+
+                for charge in storage_charges:
+                    zpool_id = charge.zpool_id if charge.zpool_id is not UNSET else ""
+                    vol_type = charge.volume_type if charge.volume_type is not UNSET else ""
+                    size_gb = charge.size_gb if charge.size_gb is not UNSET else 0
+                    hourly = charge.hourly_rate if charge.hourly_rate is not UNSET else 0
+                    daily = charge.daily_rate if charge.daily_rate is not UNSET else 0
+                    hours = charge.hours if charge.hours is not UNSET else 0
+                    total = charge.total_charges if charge.total_charges is not UNSET else 0
+                    from_ts = charge.from_ts if charge.from_ts is not UNSET else ""
+                    to_ts = charge.to_ts if charge.to_ts is not UNSET else ""
+
+                    # Format dates for display (just date part)
+                    from_short = from_ts[:10] if from_ts else ""
+                    to_short = to_ts[:10] if to_ts else ""
+                    period_str = f"{from_short} → {to_short}"
+
+                    table.add_row(
+                        zpool_id,
+                        vol_type,
+                        f"{size_gb} GB",
+                        f"${hourly:.6f}",
+                        f"${daily:.4f}",
+                        str(hours),
+                        f"${total:.4f}",
+                        period_str
+                    )
+                console.print(table)
+
+            # Time-of-Use Charges
+            tou_charges = summary.time_of_use_charges if summary.time_of_use_charges is not UNSET else []
+            if tou_charges:
+                table = Table(title="Time-of-Use Charges")
+                table.add_column("Time", style="blue")
+                table.add_column("Source", style="cyan")
+                table.add_column("Zpool ID", style="yellow")
+                table.add_column("Amount", style="red")
+                table.add_column("Note", style="white")
+
+                for charge in tou_charges:
+                    ts = charge.ts if charge.ts is not UNSET else ""
+                    source = charge.source if charge.source is not UNSET else ""
+                    zpool_id = charge.zpool_id if charge.zpool_id is not UNSET else ""
+                    amount = charge.amount_usd if charge.amount_usd is not UNSET else 0
+                    note = charge.note if charge.note is not UNSET else ""
+
+                    table.add_row(ts[:19], source, zpool_id, f"${amount:.4f}", note)
+                console.print(table)
+
+            # Credits (attribute is credits_ due to Python reserved word)
+            credits_list = summary.credits_ if summary.credits_ is not UNSET else []
+            if credits_list:
+                table = Table(title="Credits")
+                table.add_column("Time", style="blue")
+                table.add_column("Source", style="cyan")
+                table.add_column("Amount", style="green")
+                table.add_column("Note", style="white")
+
+                for credit in credits_list:
+                    ts = credit.ts if credit.ts is not UNSET else ""
+                    source = credit.source if credit.source is not UNSET else ""
+                    amount = credit.amount_usd if credit.amount_usd is not UNSET else 0
+                    note = credit.note if credit.note is not UNSET else ""
+
+                    table.add_row(ts[:19], source, f"+${amount:.2f}", note)
+                console.print(table)
+
+            # Totals
+            totals = summary.totals if summary.totals is not UNSET else None
+            if totals:
+                console.print("\n[bold]Totals[/bold]")
+                storage = totals.storage_charges if totals.storage_charges is not UNSET else 0
+                tou = totals.time_of_use_charges if totals.time_of_use_charges is not UNSET else 0
+                credits_applied = totals.credits_applied if totals.credits_applied is not UNSET else 0
+                period_net = totals.period_net if totals.period_net is not UNSET else 0
+                ending_balance = totals.ending_balance if totals.ending_balance is not UNSET else 0
+
+                console.print(f"  Storage Charges:     [red]-${storage:.4f}[/red]")
+                console.print(f"  Time-of-Use Charges: [red]-${tou:.4f}[/red]")
+                console.print(f"  Credits Applied:     [green]+${credits_applied:.2f}[/green]")
+                console.print(f"  [bold]Period Net:          ${period_net:.4f}[/bold]")
+                console.print(f"  [bold]Ending Balance:      ${ending_balance:.2f}[/bold]")
+
+            # Note about ending balance
+            note = response.parsed.detail.note if response.parsed.detail.note is not UNSET else ""
+            if note:
+                console.print(f"\n[dim]{note}[/dim]")
+        else:
+            error_msg = format_error_response(response.status_code, response.content, json_output)
+            if json_output:
+                print(error_msg)
+            else:
+                console.print(f"[red]Error {response.status_code}:[/red] {error_msg}")
+
+    except Exception as e:
+        console.print(f"[red]An error occurred:[/red] {e}")
+
 
 @app.command("claim")
 def claim_code(

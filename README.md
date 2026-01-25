@@ -62,7 +62,7 @@ The CLI groups commands into functional areas. Full usage and flags are shown by
   - `claim <code>`
   - claim codes for your account (joining the beta, adding features, claiming account credits)
 - **Billing**
-  - `billing balance | ledger | start`
+  - `billing balance | ledger | summary | start`
   - high-level billing flows (auth-prompted)
 - **Personal Access Tokens** (TBD docs)
   - `pat ...`

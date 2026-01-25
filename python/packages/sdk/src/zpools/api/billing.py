@@ -60,3 +60,48 @@ class BillingMixin:
             until=until_param,
             limit=limit_param
         )
+
+    def get_billing_summary(self, since: str = None, until: str = None):
+        """
+        Get aggregated billing summary grouped by zpool and rate period.
+        
+        Groups hourly storage charges into periods, lists time-of-use charges
+        (scrub jobs, egress) separately, and calculates totals.
+        
+        Args:
+            since: Start date in YYYY-MM-DD format (or date object)
+            until: End date in YYYY-MM-DD format (or date object)
+            
+        Returns:
+            Response with status_code and summary details including:
+            - storage_charges: Grouped storage charges by zpool/rate
+            - time_of_use_charges: Scrub jobs, egress, etc.
+            - credits: Applied credits
+            - totals: Period totals and ending balance
+        """
+        from .._generated.api.billing import get_billing_summary
+        from .._generated.types import UNSET
+        from datetime import datetime
+        
+        auth_client = self._auth.get_authenticated_client()
+        
+        # Convert string dates to date objects
+        since_param = UNSET
+        if since is not None:
+            if isinstance(since, str):
+                since_param = datetime.strptime(since, "%Y-%m-%d").date()
+            else:
+                since_param = since
+        
+        until_param = UNSET
+        if until is not None:
+            if isinstance(until, str):
+                until_param = datetime.strptime(until, "%Y-%m-%d").date()
+            else:
+                until_param = until
+        
+        return get_billing_summary.sync_detailed(
+            client=auth_client,
+            since=since_param,
+            until=until_param
+        )

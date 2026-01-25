@@ -62,13 +62,12 @@ def wait_for_job_with_progress(client, job_id: str, operation_name: str, timeout
         status_text.append(f"[{job_state}]", style="yellow")
         status_text.append(f" ({monitor.elapsed_str()})", style="dim")
         
-        # Build history table (show last 10 events)
+        # Build history table (show all events)
         history_table = Table(show_header=True, box=None, padding=(0, 1))
         history_table.add_column("Time", style="dim", width=8)
         history_table.add_column("Message", style="white")
         
-        recent_history = history[-10:] if len(history) > 10 else history
-        for event in recent_history:
+        for event in history:
             timestamp = event.get('timestamp', '')
             event_msg = event.get('message', '')
             

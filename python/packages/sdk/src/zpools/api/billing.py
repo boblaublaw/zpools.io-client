@@ -20,12 +20,12 @@ class BillingMixin:
         """
         Get billing ledger entries with optional date filters.
         
-        Filters by usage_date (the date charges are for), not transaction timestamp.
-        Results include both usage_date and ts (transaction timestamp).
+        Filters by event_ts (when the event occurred).
+        Results include event_ts and posted_ts (when recorded).
         
         Args:
-            since: Start usage date in YYYY-MM-DD format (or date object)
-            until: End usage date in YYYY-MM-DD format (or date object)
+            since: Start event date in YYYY-MM-DD format (or date object)
+            until: End event date in YYYY-MM-DD format (or date object)
             limit: Maximum number of entries (1-5000, default 500)
             
         Returns:

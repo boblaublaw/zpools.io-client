@@ -59,11 +59,11 @@ def get_balance(
 def get_ledger(
     ctx: typer.Context,
     limit: int = typer.Option(None, help="Number of entries to display"),
-    since: str = typer.Option(None, help="Start usage date (YYYY-MM-DD) - filters by when charges are for"),
-    until: str = typer.Option(None, help="End usage date (YYYY-MM-DD) - filters by when charges are for"),
+    since: str = typer.Option(None, help="Start event date (YYYY-MM-DD) - filters by when event occurred"),
+    until: str = typer.Option(None, help="End event date (YYYY-MM-DD) - filters by when event occurred"),
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
 ):
-    """View billing transaction history. Shows both usage_date (when charges are for) and ts (when posted)."""
+    """View billing transaction history. Shows event_ts (when event occurred) and posted_ts (when recorded)."""
     try:
         from zpools_cli.utils import get_authenticated_client
         client = get_authenticated_client(ctx.obj)
@@ -118,8 +118,8 @@ def get_ledger(
             # API returns newest-first, display as-is
             for item in items:
                 # Extract fields with UNSET checks
-                usage_date = item.usage_date if item.usage_date is not UNSET else ""
-                ts = item.ts if item.ts is not UNSET else ""
+                event_ts = item.event_ts if item.event_ts is not UNSET else ""
+                posted_ts = item.posted_ts if item.posted_ts is not UNSET else ""
                 event_type = item.event_type if item.event_type is not UNSET else ""
                 source = item.source if item.source is not UNSET else ""
                 amount_usd = item.amount_usd if item.amount_usd is not UNSET else 0
@@ -137,8 +137,8 @@ def get_ledger(
                     amount_str = f"[red]{amount_str}[/red]"
                 
                 table.add_row(
-                    usage_date,
-                    ts,
+                    event_ts,
+                    posted_ts,
                     event_type,
                     source,
                     amount_str,
@@ -264,13 +264,13 @@ def get_summary(
                 table.add_column("Note", style="white")
 
                 for charge in tou_charges:
-                    ts = charge.ts if charge.ts is not UNSET else ""
+                    posted_ts = charge.posted_ts if charge.posted_ts is not UNSET else ""
                     source = charge.source if charge.source is not UNSET else ""
                     zpool_id = charge.zpool_id if charge.zpool_id is not UNSET else ""
                     amount = charge.amount_usd if charge.amount_usd is not UNSET else 0
                     note = charge.note if charge.note is not UNSET else ""
 
-                    table.add_row(ts[:19], source, zpool_id, f"${amount:.4f}", note)
+                    table.add_row(posted_ts[:19], source, zpool_id, f"${amount:.4f}", note)
                 console.print(table)
 
             # Credits (attribute is credits_ due to Python reserved word)
@@ -283,12 +283,12 @@ def get_summary(
                 table.add_column("Note", style="white")
 
                 for credit in credits_list:
-                    ts = credit.ts if credit.ts is not UNSET else ""
+                    posted_ts = credit.posted_ts if credit.posted_ts is not UNSET else ""
                     source = credit.source if credit.source is not UNSET else ""
                     amount = credit.amount_usd if credit.amount_usd is not UNSET else 0
                     note = credit.note if credit.note is not UNSET else ""
 
-                    table.add_row(ts[:19], source, f"+${amount:.2f}", note)
+                    table.add_row(posted_ts[:19], source, f"+${amount:.2f}", note)
                 console.print(table)
 
             # Totals

@@ -76,8 +76,8 @@ def sync_detailed(
 ) -> Response[Any | GetBillingLedgerResponse200]:
     """Get billing ledger
 
-     Retrieve billing transaction history with optional date filters. Filters by usage_date (the date
-    charges are for), not transaction timestamp.
+     Retrieve billing transaction history with optional date filters. Filters by event_ts date (when the
+    event occurred).
 
     Args:
         since (datetime.date | Unset):
@@ -114,8 +114,8 @@ def sync(
 ) -> Any | GetBillingLedgerResponse200 | None:
     """Get billing ledger
 
-     Retrieve billing transaction history with optional date filters. Filters by usage_date (the date
-    charges are for), not transaction timestamp.
+     Retrieve billing transaction history with optional date filters. Filters by event_ts date (when the
+    event occurred).
 
     Args:
         since (datetime.date | Unset):
@@ -147,8 +147,8 @@ async def asyncio_detailed(
 ) -> Response[Any | GetBillingLedgerResponse200]:
     """Get billing ledger
 
-     Retrieve billing transaction history with optional date filters. Filters by usage_date (the date
-    charges are for), not transaction timestamp.
+     Retrieve billing transaction history with optional date filters. Filters by event_ts date (when the
+    event occurred).
 
     Args:
         since (datetime.date | Unset):
@@ -183,8 +183,8 @@ async def asyncio(
 ) -> Any | GetBillingLedgerResponse200 | None:
     """Get billing ledger
 
-     Retrieve billing transaction history with optional date filters. Filters by usage_date (the date
-    charges are for), not transaction timestamp.
+     Retrieve billing transaction history with optional date filters. Filters by event_ts date (when the
+    event occurred).
 
     Args:
         since (datetime.date | Unset):

@@ -16,27 +16,30 @@ class GetBillingLedgerResponse200DetailItemsItem:
     """
     Attributes:
         amount_usd (float | Unset): Total amount in USD
-        event_type (str | Unset): Type of event (e.g., usage, credit, payment)
+        event_ts (str | Unset): Timestamp when the event occurred (ISO-8601). For hourly_ebs: start of billed hour. For
+            atomic events (admin, claim): equals posted_ts.
+        event_type (str | Unset): Type of event (e.g., debit, credit)
         markup_bps (float | Unset): Markup in basis points
         markup_usd (float | Unset): Markup amount in USD
         note (str | Unset): Additional notes
+        posted_ts (str | Unset): Timestamp when the entry was posted/recorded (ISO-8601)
         source (str | Unset): Source of the charge or credit
-        ts (str | Unset): Timestamp of the ledger entry
-        usage_date (str | Unset): Date of usage (YYYY-MM-DD)
     """
 
     amount_usd: float | Unset = UNSET
+    event_ts: str | Unset = UNSET
     event_type: str | Unset = UNSET
     markup_bps: float | Unset = UNSET
     markup_usd: float | Unset = UNSET
     note: str | Unset = UNSET
+    posted_ts: str | Unset = UNSET
     source: str | Unset = UNSET
-    ts: str | Unset = UNSET
-    usage_date: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         amount_usd = self.amount_usd
+
+        event_ts = self.event_ts
 
         event_type = self.event_type
 
@@ -46,17 +49,17 @@ class GetBillingLedgerResponse200DetailItemsItem:
 
         note = self.note
 
+        posted_ts = self.posted_ts
+
         source = self.source
-
-        ts = self.ts
-
-        usage_date = self.usage_date
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
         if amount_usd is not UNSET:
             field_dict["amount_usd"] = amount_usd
+        if event_ts is not UNSET:
+            field_dict["event_ts"] = event_ts
         if event_type is not UNSET:
             field_dict["event_type"] = event_type
         if markup_bps is not UNSET:
@@ -65,12 +68,10 @@ class GetBillingLedgerResponse200DetailItemsItem:
             field_dict["markup_usd"] = markup_usd
         if note is not UNSET:
             field_dict["note"] = note
+        if posted_ts is not UNSET:
+            field_dict["posted_ts"] = posted_ts
         if source is not UNSET:
             field_dict["source"] = source
-        if ts is not UNSET:
-            field_dict["ts"] = ts
-        if usage_date is not UNSET:
-            field_dict["usage_date"] = usage_date
 
         return field_dict
 
@@ -78,6 +79,8 @@ class GetBillingLedgerResponse200DetailItemsItem:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         amount_usd = d.pop("amount_usd", UNSET)
+
+        event_ts = d.pop("event_ts", UNSET)
 
         event_type = d.pop("event_type", UNSET)
 
@@ -87,21 +90,19 @@ class GetBillingLedgerResponse200DetailItemsItem:
 
         note = d.pop("note", UNSET)
 
+        posted_ts = d.pop("posted_ts", UNSET)
+
         source = d.pop("source", UNSET)
-
-        ts = d.pop("ts", UNSET)
-
-        usage_date = d.pop("usage_date", UNSET)
 
         get_billing_ledger_response_200_detail_items_item = cls(
             amount_usd=amount_usd,
+            event_ts=event_ts,
             event_type=event_type,
             markup_bps=markup_bps,
             markup_usd=markup_usd,
             note=note,
+            posted_ts=posted_ts,
             source=source,
-            ts=ts,
-            usage_date=usage_date,
         )
 
         get_billing_ledger_response_200_detail_items_item.additional_properties = d

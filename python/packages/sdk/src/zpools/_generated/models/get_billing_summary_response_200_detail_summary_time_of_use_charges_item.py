@@ -17,15 +17,15 @@ class GetBillingSummaryResponse200DetailSummaryTimeOfUseChargesItem:
     Attributes:
         amount_usd (float | Unset):
         note (str | Unset):
+        posted_ts (str | Unset):
         source (str | Unset):
-        ts (str | Unset):
         zpool_id (str | Unset):
     """
 
     amount_usd: float | Unset = UNSET
     note: str | Unset = UNSET
+    posted_ts: str | Unset = UNSET
     source: str | Unset = UNSET
-    ts: str | Unset = UNSET
     zpool_id: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -34,9 +34,9 @@ class GetBillingSummaryResponse200DetailSummaryTimeOfUseChargesItem:
 
         note = self.note
 
-        source = self.source
+        posted_ts = self.posted_ts
 
-        ts = self.ts
+        source = self.source
 
         zpool_id = self.zpool_id
 
@@ -47,10 +47,10 @@ class GetBillingSummaryResponse200DetailSummaryTimeOfUseChargesItem:
             field_dict["amount_usd"] = amount_usd
         if note is not UNSET:
             field_dict["note"] = note
+        if posted_ts is not UNSET:
+            field_dict["posted_ts"] = posted_ts
         if source is not UNSET:
             field_dict["source"] = source
-        if ts is not UNSET:
-            field_dict["ts"] = ts
         if zpool_id is not UNSET:
             field_dict["zpool_id"] = zpool_id
 
@@ -63,17 +63,17 @@ class GetBillingSummaryResponse200DetailSummaryTimeOfUseChargesItem:
 
         note = d.pop("note", UNSET)
 
-        source = d.pop("source", UNSET)
+        posted_ts = d.pop("posted_ts", UNSET)
 
-        ts = d.pop("ts", UNSET)
+        source = d.pop("source", UNSET)
 
         zpool_id = d.pop("zpool_id", UNSET)
 
         get_billing_summary_response_200_detail_summary_time_of_use_charges_item = cls(
             amount_usd=amount_usd,
             note=note,
+            posted_ts=posted_ts,
             source=source,
-            ts=ts,
             zpool_id=zpool_id,
         )
 

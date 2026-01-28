@@ -17,14 +17,14 @@ class GetBillingSummaryResponse200DetailSummaryCreditsItem:
     Attributes:
         amount_usd (float | Unset):
         note (str | Unset):
+        posted_ts (str | Unset):
         source (str | Unset):
-        ts (str | Unset):
     """
 
     amount_usd: float | Unset = UNSET
     note: str | Unset = UNSET
+    posted_ts: str | Unset = UNSET
     source: str | Unset = UNSET
-    ts: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,9 +32,9 @@ class GetBillingSummaryResponse200DetailSummaryCreditsItem:
 
         note = self.note
 
-        source = self.source
+        posted_ts = self.posted_ts
 
-        ts = self.ts
+        source = self.source
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -43,10 +43,10 @@ class GetBillingSummaryResponse200DetailSummaryCreditsItem:
             field_dict["amount_usd"] = amount_usd
         if note is not UNSET:
             field_dict["note"] = note
+        if posted_ts is not UNSET:
+            field_dict["posted_ts"] = posted_ts
         if source is not UNSET:
             field_dict["source"] = source
-        if ts is not UNSET:
-            field_dict["ts"] = ts
 
         return field_dict
 
@@ -57,15 +57,15 @@ class GetBillingSummaryResponse200DetailSummaryCreditsItem:
 
         note = d.pop("note", UNSET)
 
-        source = d.pop("source", UNSET)
+        posted_ts = d.pop("posted_ts", UNSET)
 
-        ts = d.pop("ts", UNSET)
+        source = d.pop("source", UNSET)
 
         get_billing_summary_response_200_detail_summary_credits_item = cls(
             amount_usd=amount_usd,
             note=note,
+            posted_ts=posted_ts,
             source=source,
-            ts=ts,
         )
 
         get_billing_summary_response_200_detail_summary_credits_item.additional_properties = d

@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: ZpoolsAPI
-  version: 2026-01-22 04:46:49UTC
+  version: 2026-01-23 05:40:36UTC
 servers:
 - url: https://api.zpools.io/v1
 tags:
@@ -164,8 +164,13 @@ paths:
                             amount_usd:
                               description: Total amount in USD
                               type: number
+                            event_ts:
+                              description: 'Timestamp when the event occurred (ISO-8601).
+                                For hourly_ebs: start of billed hour. For atomic events
+                                (admin, claim): equals posted_ts.'
+                              type: string
                             event_type:
-                              description: Type of event (e.g., usage, credit, payment)
+                              description: Type of event (e.g., debit, credit)
                               type: string
                             markup_bps:
                               description: Markup in basis points
@@ -176,14 +181,12 @@ paths:
                             note:
                               description: Additional notes
                               type: string
+                            posted_ts:
+                              description: Timestamp when the entry was posted/recorded
+                                (ISO-8601)
+                              type: string
                             source:
                               description: Source of the charge or credit
-                              type: string
-                            ts:
-                              description: Timestamp of the ledger entry
-                              type: string
-                            usage_date:
-                              description: Date of usage (YYYY-MM-DD)
                               type: string
                           type: object
                         type: array
@@ -198,19 +201,18 @@ paths:
       - CognitoAuthorizer: []
       summary: Get billing ledger
       description: Retrieve billing transaction history with optional date filters.
-        Filters by usage_date (the date charges are for), not transaction timestamp.
+        Filters by event_ts date (when the event occurred).
       tags:
       - Billing
       parameters:
-      - description: Start usage date (YYYY-MM-DD format) - filters by usage_date
-          field
+      - description: Start event date (YYYY-MM-DD format) - filters by event_ts
         in: query
         name: since
         required: false
         schema:
           format: date
           type: string
-      - description: End usage date (YYYY-MM-DD format) - filters by usage_date field
+      - description: End event date (YYYY-MM-DD format) - filters by event_ts
         in: query
         name: until
         required: false
@@ -250,9 +252,9 @@ paths:
                                   type: number
                                 note:
                                   type: string
-                                source:
+                                posted_ts:
                                   type: string
-                                ts:
+                                source:
                                   type: string
                               type: object
                             type: array
@@ -293,9 +295,9 @@ paths:
                                   type: number
                                 note:
                                   type: string
-                                source:
+                                posted_ts:
                                   type: string
-                                ts:
+                                source:
                                   type: string
                                 zpool_id:
                                   type: string

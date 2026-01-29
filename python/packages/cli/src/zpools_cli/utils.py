@@ -7,6 +7,30 @@ from rich.console import Console
 console = Console()
 
 
+def format_usd(amount: float) -> str:
+    """
+    Format a USD amount with sufficient precision (no forced rounding).
+    
+    Shows only as many decimal places as needed to represent the value:
+    - Formats with 6 decimal places (matches backend AMOUNT_PRECISION)
+    - Strips trailing zeros
+    - Returns numeric string only; callers add '$', signs, and Rich styling
+    
+    Examples:
+        format_usd(0.01) -> "0.01"
+        format_usd(0.010000) -> "0.01"
+        format_usd(0.009996) -> "0.009996"
+        format_usd(1.5) -> "1.5"
+        format_usd(0) -> "0"
+        format_usd(-0.01) -> "-0.01"
+    """
+    # Format with 6 decimal places (backend precision)
+    formatted = f"{amount:.6f}"
+    # Strip trailing zeros and unnecessary decimal point
+    formatted = formatted.rstrip('0').rstrip('.')
+    return formatted
+
+
 def is_interactive() -> bool:
     """Check if running in an interactive terminal."""
     return sys.stdout.isatty()

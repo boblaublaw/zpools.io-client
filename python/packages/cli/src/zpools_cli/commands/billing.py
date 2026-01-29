@@ -2,7 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import format_error_response
+from zpools_cli.utils import format_error_response, format_usd
 from zpools._generated.api.billing import (
     get_billing_balance,
     get_billing_ledger,
@@ -44,7 +44,7 @@ def get_balance(
             
             # Access balance_usd from the object
             balance_usd = balance_obj.balance_usd if balance_obj.balance_usd is not UNSET else 0
-            console.print(f"[bold]Current Balance:[/bold] ${balance_usd:.2f}")
+            console.print(f"[bold]Current Balance:[/bold] ${format_usd(balance_usd)}")
         else:
             error_msg = format_error_response(response.status_code, response.content, json_output)
             if json_output:
@@ -126,11 +126,7 @@ def get_ledger(
                 note = item.note if item.note is not UNSET else ""
                 
                 # Format amount with color
-                # Show full precision for partial cents, 2 decimals for larger amounts
-                if abs(amount_usd) < 0.01 and amount_usd != 0:
-                    amount_str = f"${amount_usd:.6f}"
-                else:
-                    amount_str = f"${amount_usd:.2f}"
+                amount_str = f"${format_usd(amount_usd)}"
                 if amount_usd > 0:
                     amount_str = f"[green]+{amount_str}[/green]"
                 elif amount_usd < 0:
@@ -245,10 +241,10 @@ def get_summary(
                         zpool_id,
                         vol_type,
                         f"{size_gb} GB",
-                        f"${hourly:.6f}",
-                        f"${daily:.4f}",
+                        f"${format_usd(hourly)}",
+                        f"${format_usd(daily)}",
                         str(hours),
-                        f"${total:.4f}",
+                        f"${format_usd(total)}",
                         period_str
                     )
                 console.print(table)
@@ -270,7 +266,7 @@ def get_summary(
                     amount = charge.amount_usd if charge.amount_usd is not UNSET else 0
                     note = charge.note if charge.note is not UNSET else ""
 
-                    table.add_row(posted_ts[:19], source, zpool_id, f"${amount:.4f}", note)
+                    table.add_row(posted_ts[:19], source, zpool_id, f"${format_usd(amount)}", note)
                 console.print(table)
 
             # Credits (attribute is credits_ due to Python reserved word)
@@ -288,7 +284,7 @@ def get_summary(
                     amount = credit.amount_usd if credit.amount_usd is not UNSET else 0
                     note = credit.note if credit.note is not UNSET else ""
 
-                    table.add_row(posted_ts[:19], source, f"+${amount:.2f}", note)
+                    table.add_row(posted_ts[:19], source, f"+${format_usd(amount)}", note)
                 console.print(table)
 
             # Totals
@@ -301,11 +297,11 @@ def get_summary(
                 period_net = totals.period_net if totals.period_net is not UNSET else 0
                 ending_balance = totals.ending_balance if totals.ending_balance is not UNSET else 0
 
-                console.print(f"  Storage Charges:     [red]-${storage:.4f}[/red]")
-                console.print(f"  Time-of-Use Charges: [red]-${tou:.4f}[/red]")
-                console.print(f"  Credits Applied:     [green]+${credits_applied:.2f}[/green]")
-                console.print(f"  [bold]Period Net:          ${period_net:.4f}[/bold]")
-                console.print(f"  [bold]Ending Balance:      ${ending_balance:.2f}[/bold]")
+                console.print(f"  Storage Charges:     [red]-${format_usd(storage)}[/red]")
+                console.print(f"  Time-of-Use Charges: [red]-${format_usd(tou)}[/red]")
+                console.print(f"  Credits Applied:     [green]+${format_usd(credits_applied)}[/green]")
+                console.print(f"  [bold]Period Net:          ${format_usd(period_net)}[/bold]")
+                console.print(f"  [bold]Ending Balance:      ${format_usd(ending_balance)}[/bold]")
 
             # Note about ending balance
             note = response.parsed.detail.note if response.parsed.detail.note is not UNSET else ""
@@ -346,7 +342,7 @@ def claim_code(
             detail = response.parsed.detail
             amount = detail.amount_cents if detail.amount_cents is not UNSET else 0
             console.print(f"[green]Code redeemed successfully![/green]")
-            console.print(f"Added: ${amount/100:.2f}")
+            console.print(f"Added: ${format_usd(amount / 100)}")
             # New balance is not returned in this response model, user can check balance separately
         else:
             error_msg = format_error_response(response.status_code, response.content, json_output)

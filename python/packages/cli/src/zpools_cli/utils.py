@@ -1,10 +1,57 @@
 import sys
 import json
 import typer
+from datetime import datetime, timezone
+from typing import Union
 from zpools import ZPoolsClient
 from rich.console import Console
 
 console = Console()
+
+
+def format_timestamp(value: Union[str, datetime, None], use_local_tz: bool = False) -> str:
+    """
+    Format a timestamp for display, optionally converting to local timezone.
+    
+    Args:
+        value: ISO-8601 string, datetime object, or None
+        use_local_tz: If True, convert to local timezone; otherwise show UTC
+        
+    Returns:
+        Formatted timestamp string, or "-" for missing/invalid input
+        
+    Examples:
+        format_timestamp("2026-01-26T02:05:37.520+00:00", False) -> "2026-01-26 02:05:37 UTC"
+        format_timestamp("2026-01-26T02:05:37.520+00:00", True) -> "2026-01-25 18:05:37 PST"
+    """
+    if value is None or value == "":
+        return "-"
+    
+    try:
+        # Parse string to datetime if needed
+        if isinstance(value, str):
+            # Handle 'Z' suffix and various ISO formats
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        elif isinstance(value, datetime):
+            dt = value
+        else:
+            return "-"
+        
+        # Ensure timezone-aware (treat naive as UTC)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        
+        # Convert to target timezone
+        if use_local_tz:
+            dt = dt.astimezone()  # Convert to local timezone
+            # Format with timezone abbreviation (e.g. PST, EST)
+            return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
+        else:
+            # Convert to UTC and format
+            dt = dt.astimezone(timezone.utc)
+            return dt.strftime('%Y-%m-%d %H:%M:%S') + " UTC"
+    except Exception:
+        return "-"
 
 
 def format_usd(amount: float) -> str:

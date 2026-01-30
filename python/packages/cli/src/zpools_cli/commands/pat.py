@@ -3,7 +3,7 @@ import json
 import datetime
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client, format_error_response
+from zpools_cli.utils import get_authenticated_client, format_error_response, format_timestamp
 from zpools._generated.types import UNSET
 
 app = typer.Typer(help="Manage Personal Access Tokens", no_args_is_help=True)
@@ -12,7 +12,8 @@ console = Console()
 @app.command("list")
 def list_pats(
     ctx: typer.Context,
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """List all Personal Access Tokens."""
     try:
@@ -40,8 +41,10 @@ def list_pats(
             table.add_column("Scopes", style="white")
 
             for token in items:
-                last_used = str(token.last_used_at) if token.last_used_at is not UNSET else "Never"
-                expiry = str(token.expiry_at) if token.expiry_at is not UNSET else "Never"
+                # Format timestamps with timezone preference
+                created_at = format_timestamp(token.created_at, use_local_tz) if token.created_at is not UNSET else "-"
+                last_used = format_timestamp(token.last_used_at, use_local_tz) if token.last_used_at is not UNSET else "Never"
+                expiry = format_timestamp(token.expiry_at, use_local_tz) if token.expiry_at is not UNSET else "Never"
                 status = token.status if token.status is not UNSET else "Unknown"
                 scopes = ", ".join(token.scopes) if token.scopes is not UNSET else ""
                 
@@ -49,7 +52,7 @@ def list_pats(
                     token.key_id,
                     token.label,
                     status,
-                    str(token.created_at),
+                    created_at,
                     expiry,
                     last_used,
                     scopes

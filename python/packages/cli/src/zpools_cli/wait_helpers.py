@@ -5,9 +5,10 @@ from datetime import datetime, timezone
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
+from zpools_cli.utils import format_timestamp
 
 
-def wait_with_token_refresh(client, duration_seconds: float, console: Optional[Console] = None, show_progress: Optional[bool] = None):
+def wait_with_token_refresh(client, duration_seconds: float, console: Optional[Console] = None, show_progress: Optional[bool] = None, use_local_tz: bool = False):
     """
     Wait for specified duration, refreshing auth token every 50 minutes.
     
@@ -19,6 +20,7 @@ def wait_with_token_refresh(client, duration_seconds: float, console: Optional[C
         duration_seconds: How long to wait
         console: Rich Console instance for formatted output (optional)
         show_progress: Show refresh messages (defaults to True if interactive terminal)
+        use_local_tz: Show timestamps in local timezone (default: UTC)
     
     Example:
         # Wait for 5 hours with automatic token refresh
@@ -34,17 +36,16 @@ def wait_with_token_refresh(client, duration_seconds: float, console: Optional[C
     next_refresh = start + refresh_interval
     first_iteration = True
     
-    def format_time_table(refresh_time_utc, refresh_time_local):
+    def format_time_table(refresh_time_utc):
         """Create a formatted table showing wait status."""
         table = Table(show_header=False, box=None, padding=(0, 2))
         table.add_column(style="cyan", width=20)
         table.add_column(style="white")
         
-        # Format refresh times
-        refresh_utc_str = refresh_time_utc.strftime('%Y-%m-%d %H:%M:%S UTC')
-        refresh_local_str = refresh_time_local.strftime('%Y-%m-%d %H:%M:%S %Z')
+        # Format refresh time using shared formatter
+        refresh_str = format_timestamp(refresh_time_utc, use_local_tz)
         
-        table.add_row("[cyan]Next token refresh:[/cyan]", f"[white]{refresh_utc_str} / {refresh_local_str}[/white]")
+        table.add_row("[cyan]Next token refresh:[/cyan]", f"[white]{refresh_str}[/white]")
         
         return table
     
@@ -56,8 +57,7 @@ def wait_with_token_refresh(client, duration_seconds: float, console: Optional[C
         # Show status on first iteration
         if first_iteration and show_progress:
             refresh_time_utc = datetime.fromtimestamp(next_refresh, tz=timezone.utc)
-            refresh_time_local = refresh_time_utc.astimezone()
-            table = format_time_table(refresh_time_utc, refresh_time_local)
+            table = format_time_table(refresh_time_utc)
             console.print(table)
             first_iteration = False
         
@@ -73,9 +73,8 @@ def wait_with_token_refresh(client, duration_seconds: float, console: Optional[C
                 next_refresh = current_time + refresh_interval
                 if show_progress:
                     refresh_time_utc = datetime.fromtimestamp(next_refresh, tz=timezone.utc)
-                    refresh_time_local = refresh_time_utc.astimezone()
                     console.print("[green]Token refreshed.[/green]")
-                    table = format_time_table(refresh_time_utc, refresh_time_local)
+                    table = format_time_table(refresh_time_utc)
                     console.print(table)
             except Exception as e:
                 # Log error but continue - will retry on next iteration

@@ -2,7 +2,7 @@ import typer
 import json
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import format_error_response, format_usd
+from zpools_cli.utils import format_error_response, format_usd, format_timestamp
 from zpools._generated.api.billing import (
     get_billing_balance,
     get_billing_ledger,
@@ -61,7 +61,8 @@ def get_ledger(
     limit: int = typer.Option(None, help="Number of entries to display"),
     since: str = typer.Option(None, help="Start event date (YYYY-MM-DD) - filters by when event occurred"),
     until: str = typer.Option(None, help="End event date (YYYY-MM-DD) - filters by when event occurred"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """View billing transaction history. Shows event_ts (when event occurred) and posted_ts (when recorded)."""
     try:
@@ -108,8 +109,8 @@ def get_ledger(
                 return
 
             table = Table(title="Billing Ledger")
-            table.add_column("Date", style="green")
-            table.add_column("Time", style="blue")
+            table.add_column("Event", style="green")
+            table.add_column("Posted", style="blue")
             table.add_column("Event Type", style="yellow")
             table.add_column("Source", style="cyan")
             table.add_column("Amount (USD)", style="magenta")
@@ -125,6 +126,10 @@ def get_ledger(
                 amount_usd = item.amount_usd if item.amount_usd is not UNSET else 0
                 note = item.note if item.note is not UNSET else ""
                 
+                # Format timestamps with timezone preference
+                event_ts_fmt = format_timestamp(event_ts, use_local_tz)
+                posted_ts_fmt = format_timestamp(posted_ts, use_local_tz)
+                
                 # Format amount with color
                 amount_str = f"${format_usd(amount_usd)}"
                 if amount_usd > 0:
@@ -133,8 +138,8 @@ def get_ledger(
                     amount_str = f"[red]{amount_str}[/red]"
                 
                 table.add_row(
-                    event_ts,
-                    posted_ts,
+                    event_ts_fmt,
+                    posted_ts_fmt,
                     event_type,
                     source,
                     amount_str,
@@ -157,7 +162,8 @@ def get_summary(
     ctx: typer.Context,
     since: str = typer.Option(None, help="Start date (YYYY-MM-DD)"),
     until: str = typer.Option(None, help="End date (YYYY-MM-DD)"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """View aggregated billing summary grouped by zpool and rate period."""
     try:
@@ -266,7 +272,7 @@ def get_summary(
                     amount = charge.amount_usd if charge.amount_usd is not UNSET else 0
                     note = charge.note if charge.note is not UNSET else ""
 
-                    table.add_row(posted_ts[:19], source, zpool_id, f"${format_usd(amount)}", note)
+                    table.add_row(format_timestamp(posted_ts, use_local_tz), source, zpool_id, f"${format_usd(amount)}", note)
                 console.print(table)
 
             # Credits (attribute is credits_ due to Python reserved word)
@@ -284,7 +290,7 @@ def get_summary(
                     amount = credit.amount_usd if credit.amount_usd is not UNSET else 0
                     note = credit.note if credit.note is not UNSET else ""
 
-                    table.add_row(posted_ts[:19], source, f"+${format_usd(amount)}", note)
+                    table.add_row(format_timestamp(posted_ts, use_local_tz), source, f"+${format_usd(amount)}", note)
                 console.print(table)
 
             # Totals

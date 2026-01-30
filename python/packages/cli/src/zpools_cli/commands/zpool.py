@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client, format_error_response
+from zpools_cli.utils import get_authenticated_client, format_error_response, format_timestamp
 from zpools_cli.cooldown import calculate_cooldown_info
 from zpools_cli.job_monitor import wait_for_job_with_progress
 from zpools_cli.job_helpers import find_and_resume_job
@@ -256,7 +256,8 @@ def modify_zpool(
     wait_until_able: bool = typer.Option(False, "--wait-until-able", help="Wait until cooldown period expires, then submit modification"),
     resume: bool = typer.Option(False, "--resume", help="Resume monitoring an existing modification in progress"),
     timeout: int = typer.Option(1800, "--timeout", help="Timeout in seconds for modification monitoring (applies to --wait and --resume only)"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON response")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON response"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """Change a ZPool's EBS volume type (gp3 <-> sc1).
     
@@ -311,23 +312,18 @@ def modify_zpool(
                 
                 if max_cooldown:
                     retry_time = max_cooldown['retry_time']
-                    # Ensure timezone-aware (should already be UTC from cooldown calculation)
-                    if retry_time.tzinfo is None:
-                        retry_time = retry_time.replace(tzinfo=timezone.utc)
-                    retry_time_local = retry_time.astimezone()
-                    retry_time_utc_str = retry_time.strftime('%Y-%m-%d %H:%M:%S UTC')
-                    retry_time_local_str = retry_time_local.strftime('%Y-%m-%d %H:%M:%S %Z')
+                    retry_time_str = format_timestamp(retry_time, use_local_tz)
                     
                     # Create table for cooldown wait status
                     cooldown_table = Table(show_header=False, box=None, padding=(0, 2))
                     cooldown_table.add_column(style="yellow", width=20)
                     cooldown_table.add_column(style="white")
                     cooldown_table.add_row("[yellow]Status:[/yellow]", "[yellow]Volume is in cooldown period[/yellow]")
-                    cooldown_table.add_row("[yellow]Waiting until:[/yellow]", f"[white]{retry_time_utc_str} / {retry_time_local_str}[/white]")
+                    cooldown_table.add_row("[yellow]Waiting until:[/yellow]", f"[white]{retry_time_str}[/white]")
                     console.print(cooldown_table)
                     
                     # Wait with periodic token refresh (shows progress if interactive terminal)
-                    wait_with_token_refresh(client, max_cooldown['wait_seconds'], console=console)
+                    wait_with_token_refresh(client, max_cooldown['wait_seconds'], console=console, use_local_tz=use_local_tz)
                     
                     # After long wait, ensure we have a fresh token for the modify call
                     try:
@@ -400,9 +396,10 @@ def modify_zpool(
                                         earliest_cooldown = cooldown
                         
                         if earliest_cooldown:
+                            retry_time_str = format_timestamp(earliest_cooldown['retry_time'], use_local_tz)
                             console.print(f"[yellow]Conflict:[/yellow] {message}")
                             console.print(f"[yellow]AWS requires a 6-hour cooldown between volume modifications.[/yellow]")
-                            console.print(f"[yellow]You can retry after: {earliest_cooldown['retry_str']} (in ~{earliest_cooldown['wait_str']})[/yellow]")
+                            console.print(f"[yellow]You can retry after: {retry_time_str} (in ~{earliest_cooldown['wait_str']})[/yellow]")
                         else:
                             console.print(f"[yellow]Conflict:[/yellow] {message}")
                     else:

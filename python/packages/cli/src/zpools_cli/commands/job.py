@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
-from zpools_cli.utils import get_authenticated_client, format_error_response, is_interactive
+from zpools_cli.utils import get_authenticated_client, format_error_response, is_interactive, format_timestamp
 from zpools_cli.job_monitor import wait_for_job_with_progress
 from zpools._generated.api.jobs import (
     get_jobs,
@@ -127,7 +127,8 @@ def list_jobs(
 def get_job(
     ctx: typer.Context,
     job_id: str = typer.Argument(..., help="Job ID to retrieve"),
-    json_output: bool = typer.Option(False, "--json", help="Output raw JSON")
+    json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """Get details of a specific job."""
     try:
@@ -145,9 +146,9 @@ def get_job(
             console.print(f"[bold]Job ID:[/bold] {job.id}")
             console.print(f"[bold]Type:[/bold] {job.type}")
             console.print(f"[bold]Status:[/bold] {job.status}")
-            console.print(f"[bold]Created At:[/bold] {job.created_at}")
+            console.print(f"[bold]Created At:[/bold] {format_timestamp(job.created_at, use_local_tz)}")
             if job.updated_at:
-                console.print(f"[bold]Updated At:[/bold] {job.updated_at}")
+                console.print(f"[bold]Updated At:[/bold] {format_timestamp(job.updated_at, use_local_tz)}")
             if job.error:
                 console.print(f"[red bold]Error:[/red bold] {job.error}")
             if job.result:
@@ -174,7 +175,8 @@ def job_history(
     json_output: bool = typer.Option(False, "--json", help="Output raw JSON"),
     watch: bool = typer.Option(False, "--watch", help="Poll job until completion (requires interactive terminal)"),
     timeout: int = typer.Option(1800, "--timeout", help="Maximum time to wait in seconds (only used with --watch)"),
-    poll_interval: int = typer.Option(5, "--poll-interval", help="Time between polls in seconds (only used with --watch)")
+    poll_interval: int = typer.Option(5, "--poll-interval", help="Time between polls in seconds (only used with --watch)"),
+    use_local_tz: bool = typer.Option(False, "--local", help="Show timestamps in local timezone (default: UTC)")
 ):
     """Get history of a specific job."""
     # Validation for --watch flag
@@ -280,7 +282,7 @@ def job_history(
                 relative_time = format_relative_time(timestamp) if timestamp else ""
                 
                 table.add_row(
-                    timestamp,
+                    format_timestamp(timestamp, use_local_tz),
                     relative_time,
                     event_type,
                     message

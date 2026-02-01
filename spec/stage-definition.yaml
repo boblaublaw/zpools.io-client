@@ -120,11 +120,6 @@ paths:
                             format: date-time
                             nullable: true
                             type: string
-                          last_reconciliation:
-                            description: Last reconciliation timestamp
-                            format: date-time
-                            nullable: true
-                            type: string
                           last_transaction:
                             description: Last transaction timestamp
                             format: date-time
@@ -134,6 +129,9 @@ paths:
                             description: Last update timestamp
                             format: date-time
                             type: string
+                          markup_bps:
+                            description: User markup rate in basis points (0-10000)
+                            type: integer
                         type: object
                     type: object
                   message:

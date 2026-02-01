@@ -20,17 +20,17 @@ class GetBillingBalanceResponse200DetailBalance:
         balance_usd (float | Unset): Balance in USD
         customer (str | Unset): Customer username
         first_transaction (datetime.datetime | None | Unset): First transaction timestamp
-        last_reconciliation (datetime.datetime | None | Unset): Last reconciliation timestamp
         last_transaction (datetime.datetime | None | Unset): Last transaction timestamp
         last_update_ts (datetime.datetime | Unset): Last update timestamp
+        markup_bps (int | Unset): User markup rate in basis points (0-10000)
     """
 
     balance_usd: float | Unset = UNSET
     customer: str | Unset = UNSET
     first_transaction: datetime.datetime | None | Unset = UNSET
-    last_reconciliation: datetime.datetime | None | Unset = UNSET
     last_transaction: datetime.datetime | None | Unset = UNSET
     last_update_ts: datetime.datetime | Unset = UNSET
+    markup_bps: int | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -46,14 +46,6 @@ class GetBillingBalanceResponse200DetailBalance:
         else:
             first_transaction = self.first_transaction
 
-        last_reconciliation: None | str | Unset
-        if isinstance(self.last_reconciliation, Unset):
-            last_reconciliation = UNSET
-        elif isinstance(self.last_reconciliation, datetime.datetime):
-            last_reconciliation = self.last_reconciliation.isoformat()
-        else:
-            last_reconciliation = self.last_reconciliation
-
         last_transaction: None | str | Unset
         if isinstance(self.last_transaction, Unset):
             last_transaction = UNSET
@@ -66,6 +58,8 @@ class GetBillingBalanceResponse200DetailBalance:
         if not isinstance(self.last_update_ts, Unset):
             last_update_ts = self.last_update_ts.isoformat()
 
+        markup_bps = self.markup_bps
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -75,12 +69,12 @@ class GetBillingBalanceResponse200DetailBalance:
             field_dict["customer"] = customer
         if first_transaction is not UNSET:
             field_dict["first_transaction"] = first_transaction
-        if last_reconciliation is not UNSET:
-            field_dict["last_reconciliation"] = last_reconciliation
         if last_transaction is not UNSET:
             field_dict["last_transaction"] = last_transaction
         if last_update_ts is not UNSET:
             field_dict["last_update_ts"] = last_update_ts
+        if markup_bps is not UNSET:
+            field_dict["markup_bps"] = markup_bps
 
         return field_dict
 
@@ -108,23 +102,6 @@ class GetBillingBalanceResponse200DetailBalance:
 
         first_transaction = _parse_first_transaction(d.pop("first_transaction", UNSET))
 
-        def _parse_last_reconciliation(data: object) -> datetime.datetime | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                last_reconciliation_type_0 = isoparse(data)
-
-                return last_reconciliation_type_0
-            except (TypeError, ValueError, AttributeError, KeyError):
-                pass
-            return cast(datetime.datetime | None | Unset, data)
-
-        last_reconciliation = _parse_last_reconciliation(d.pop("last_reconciliation", UNSET))
-
         def _parse_last_transaction(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
@@ -149,13 +126,15 @@ class GetBillingBalanceResponse200DetailBalance:
         else:
             last_update_ts = isoparse(_last_update_ts)
 
+        markup_bps = d.pop("markup_bps", UNSET)
+
         get_billing_balance_response_200_detail_balance = cls(
             balance_usd=balance_usd,
             customer=customer,
             first_transaction=first_transaction,
-            last_reconciliation=last_reconciliation,
             last_transaction=last_transaction,
             last_update_ts=last_update_ts,
+            markup_bps=markup_bps,
         )
 
         get_billing_balance_response_200_detail_balance.additional_properties = d

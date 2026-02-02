@@ -152,7 +152,8 @@ def get_authenticated_client(config: dict) -> ZPoolsClient:
             api_url=config["api_url"],
             pat=config["pat"],
             ssh_host=config["ssh_host"],
-            ssh_privkey=config["ssh_privkey"]
+            ssh_privkey=config["ssh_privkey"],
+            token_cache_dir=config.get("token_cache_dir"),
         )
     
     # For JWT auth, we need username (password optional if cached token exists)
@@ -179,7 +180,8 @@ def get_authenticated_client(config: dict) -> ZPoolsClient:
         password=password,
         pat=None,
         ssh_host=config["ssh_host"],
-        ssh_privkey=config["ssh_privkey"]
+        ssh_privkey=config["ssh_privkey"],
+        token_cache_dir=config.get("token_cache_dir"),
     )
     
     # Try to authenticate - will use cached token if valid
@@ -197,7 +199,8 @@ def get_authenticated_client(config: dict) -> ZPoolsClient:
                 password=password,
                 pat=None,
                 ssh_host=config["ssh_host"],
-                ssh_privkey=config["ssh_privkey"]
+                ssh_privkey=config["ssh_privkey"],
+                token_cache_dir=config.get("token_cache_dir"),
             )
             client.get_authenticated_client()
             return client
@@ -224,7 +227,8 @@ def get_ssh_client(config: dict) -> ZPoolsClient:
         api_url=config["api_url"],
         username=config["username"],
         ssh_host=config["ssh_host"],
-        ssh_privkey=config["ssh_privkey"]
+        ssh_privkey=config["ssh_privkey"],
+        token_cache_dir=config.get("token_cache_dir"),
     )
     
     return client

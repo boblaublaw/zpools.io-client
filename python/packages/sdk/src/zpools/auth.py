@@ -13,12 +13,15 @@ from ._generated.models.post_login_body import PostLoginBody
 class AuthManager:
     """Manages authentication tokens (JWT and PAT) for zpools.io API."""
     
+    DEFAULT_TOKEN_CACHE_DIR = "/dev/shm/zpools.io"
+
     def __init__(
         self,
         api_url: str,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        pat: Optional[str] = None
+        pat: Optional[str] = None,
+        token_cache_dir: Optional[str] = None,
     ):
         """
         Initialize authentication manager.
@@ -28,11 +31,16 @@ class AuthManager:
             username: Username for JWT authentication
             password: Password for JWT authentication
             pat: Personal Access Token (alternative to JWT)
+            token_cache_dir: Base directory for JWT token cache (default: /dev/shm/zpools.io).
+                Set to empty string to disable JWT token caching.
         """
         self.api_url = api_url
         self.username = username
         self.password = password
         self.pat = pat
+        # Empty or whitespace means disable cache; None means use default
+        resolved = (token_cache_dir if token_cache_dir is not None else self.DEFAULT_TOKEN_CACHE_DIR).strip()
+        self._token_cache_dir = resolved if resolved else ""
 
         if self.username and " " in self.username:
             raise ValueError("Username must not contain spaces.")
@@ -40,30 +48,23 @@ class AuthManager:
             raise ValueError("Username or PAT is required.")
         
         self._raw_client = Client(base_url=self.api_url)
-        self._token_file = self._get_token_file_path() if self.username else None
+        self._token_file = self._get_token_file_path() if (self.username and self._token_cache_dir) else None
     
     def set_password(self, password: str):
         """Set the password for login if not provided during init."""
         self.password = password
     
     def _get_token_file_path(self) -> Path:
-        """Determine path for caching JWT tokens (mimics bash script behavior)."""
+        """Determine path for caching JWT tokens (ephemeral, not persisted to disk)."""
         if not self.username:
             raise ValueError("Username is required to determine token cache path.")
         if " " in self.username:
             raise ValueError("Username must not contain spaces.")
         domain_clean = self.api_url.replace("https://", "").replace("http://", "").split("/")[0]
         user_safe = self.username
-        # Use /dev/shm if available (Linux), else temp dir
-        if Path("/dev/shm").exists():
-            base_dir = Path("/dev/shm/zpools.io")
-            base_dir.mkdir(parents=True, exist_ok=True)
-            return base_dir / f"zpool_token_{domain_clean}_{user_safe}"
-        else:
-            import tempfile
-            base_dir = Path(tempfile.gettempdir()) / "zpools.io"
-            base_dir.mkdir(parents=True, exist_ok=True)
-            return base_dir / f"zpool_token_{domain_clean}_{user_safe}"
+        base_dir = Path(self._token_cache_dir)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        return base_dir / f"zpool_token_{domain_clean}_{user_safe}"
     
     def _get_cached_token(self) -> Optional[str]:
         """Retrieve valid access token from cache if it exists and isn't expired."""
@@ -100,16 +101,16 @@ class AuthManager:
         
         expires_at = int(time.time()) + expires_in
         
-        # Cache tokens
-        token_data = {
-            "access_token": access_token,
-            "id_token": id_token,
-            "expires_at": expires_at
-        }
-        
-        # Set permissions to 600 (user read/write only)
-        self._token_file.touch(mode=0o600)
-        self._token_file.write_text(json.dumps(token_data))
+        # Cache tokens (only if cache is enabled)
+        if self._token_file is not None:
+            token_data = {
+                "access_token": access_token,
+                "id_token": id_token,
+                "expires_at": expires_at
+            }
+            self._token_file.parent.mkdir(parents=True, exist_ok=True)
+            self._token_file.touch(mode=0o600)
+            self._token_file.write_text(json.dumps(token_data))
         
         return access_token
     

@@ -32,7 +32,8 @@ class ZPoolsClient(PATMixin, SSHKeyMixin, ZPoolMixin, JobMixin, BillingMixin, ZF
         password: Optional[str] = None,
         pat: Optional[str] = None,
         ssh_host: Optional[str] = None,
-        ssh_privkey: Optional[str] = None
+        ssh_privkey: Optional[str] = None,
+        token_cache_dir: Optional[str] = None,
     ):
         """
         Initialize the zpools.io API client.
@@ -44,14 +45,16 @@ class ZPoolsClient(PATMixin, SSHKeyMixin, ZPoolMixin, JobMixin, BillingMixin, ZF
             pat: Personal Access Token (alternative to JWT)
             ssh_host: SSH hostname for ZFS operations
             ssh_privkey: Path to SSH private key file
+            token_cache_dir: Base directory for JWT token cache (default: /dev/shm/zpools.io)
         """
         self._auth = AuthManager(
             api_url=api_url,
             username=username,
             password=password,
-            pat=pat
+            pat=pat,
+            token_cache_dir=token_cache_dir,
         )
-        self.ssh_host = ssh_host
+        self.ssh_host = ssh_host if ssh_host is not None else "ssh.zpools.io"
         self.ssh_privkey = ssh_privkey
 
     def get_authenticated_client(self):

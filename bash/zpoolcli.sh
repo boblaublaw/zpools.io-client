@@ -13,7 +13,7 @@ set -eo pipefail
 # -----------------------------
 DOTFILE="${HOME}/.config/zpools.io/zpoolrc"
 ZPOOL_API_URL="${ZPOOL_API_URL:-}"
-SSH_HOST="${SSH_HOST:-}"
+SSH_HOST="${SSH_HOST:-ssh.zpools.io}"
 SSH_PRIVKEY_FILE="${SSH_PRIVKEY_FILE:-}"
 ZPOOL_USER="${ZPOOL_USER:-}"
 ZPOOL_PASSWORD="${ZPOOL_PASSWORD:-}"
@@ -84,7 +84,7 @@ if [[ -f "$DOTFILE" ]]; then
     (
       # shellcheck source=/dev/null
       source "$DOTFILE"
-      for var in ZPOOL_API_URL BZFS_BIN LOCAL_POOL REMOTE_POOL SSH_HOST SSH_PRIVKEY_FILE ZPOOL_USER ZPOOLPAT; do
+      for var in ZPOOL_API_URL BZFS_BIN LOCAL_POOL REMOTE_POOL SSH_HOST SSH_PRIVKEY_FILE ZPOOL_TOKEN_CACHE_DIR ZPOOL_USER ZPOOLPAT; do
         val="${!var:-}"
         if [[ -n "$val" ]]; then
           printf 'if [[ -z "${%s:-}" ]]; then export %s=%q; fi\n' "$var" "$var" "$val"
@@ -200,6 +200,7 @@ do_http() {
 # -----------------------------
 # Auth helpers (JWT only when needed)
 # -----------------------------
+# When ZPOOL_TOKEN_CACHE_DIR is empty (e.g. "" or ""), caching is disabled; token_file_for_user returns empty.
 token_file_for_user() {
   local user="$1"
   local domain
@@ -210,7 +211,11 @@ token_file_for_user() {
   if [[ "$user" == *" "* ]]; then
     die "Username must not contain spaces"
   fi
-  local base="/dev/shm/zpools.io"
+  local base="${ZPOOL_TOKEN_CACHE_DIR:-/dev/shm/zpools.io}"
+  if [[ -z "$base" ]]; then
+    echo ""
+    return
+  fi
   mkdir -p "$base"
   echo "${base}/zpool_token_${domain}_${user}"
 }
@@ -274,9 +279,14 @@ login_and_cache_tokens() {
   local expires_at
   expires_at=$(( $(date +%s) + expires ))
 
-  umask 0177
-  printf '{"access_token":"%s","id_token":"%s","expires_at":%s}\n' "$access" "$id" "$expires_at" >"$token_file"
-  chmod 0600 "$token_file" || true
+  if [[ -n "$token_file" ]]; then
+    umask 0177
+    printf '{"access_token":"%s","id_token":"%s","expires_at":%s}\n' "$access" "$id" "$expires_at" >"$token_file"
+    chmod 0600 "$token_file" || true
+  else
+    JWT_ACCESS_TOKEN="$access"
+    JWT_ID_TOKEN="$id"
+  fi
   note "Tokens refreshed."
 }
 
@@ -284,7 +294,9 @@ ensure_jwt_fresh() {
   prompt_username_if_needed
   local token_file; token_file="$(token_file_for_user "$ZPOOL_USER" "${ZPOOL_API_URL}")"
 
-  if [[ -f "$token_file" ]]; then
+  if [[ -z "$token_file" ]]; then
+    login_and_cache_tokens "$ZPOOL_USER"
+  elif [[ -f "$token_file" ]]; then
     local file_json expires_at
     file_json="$(cat "$token_file")"
     expires_at="$(jq -r '.expires_at // 0' <<<"$file_json")"
@@ -299,7 +311,15 @@ ensure_jwt_fresh() {
 bearer() {
   local kind="$1" # "access" or "id"
   local token_file; token_file="$(token_file_for_user "$ZPOOL_USER" "${ZPOOL_API_URL}")"
-  jq -r --arg k "${kind}_token" '.[$k]' "$token_file"
+  if [[ -z "$token_file" ]]; then
+    if [[ "$kind" == "access" ]]; then
+      echo "$JWT_ACCESS_TOKEN"
+    else
+      echo "$JWT_ID_TOKEN"
+    fi
+  else
+    jq -r --arg k "${kind}_token" '.[$k]' "$token_file"
+  fi
 }
 
 # -----------------------------

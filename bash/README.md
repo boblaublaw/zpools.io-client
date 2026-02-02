@@ -2,7 +2,7 @@
 
 ## Deprecation notice
 
-**The Bash CLI is deprecated.** Documentation and support focus on the **Python CLI** (`zpcli`) and the **Python SDK**. Use the Python client and see the top-level **[docs/](../docs/)** for current documentation (quickstart, configuration, authentication, reference, troubleshooting). The Bash prototype may remain in the repo for reference but is not a first-class documentation target.
+**The Bash CLI is deprecated.** Documentation and support focus on the **Python CLI** (`zpcli`) and the **Python SDK**. Use the Python client and see the top-level **[docs/](../docs/README.md)** for current documentation (quickstart, configuration, authentication, reference, troubleshooting). The Bash prototype may remain in the repo for reference but is not a first-class documentation target.
 
 ---
 
@@ -12,7 +12,7 @@ This Bash CLI is an early prototype for interacting with the zpools.io API and S
 It's functional for basic workflows but subject to breaking changes during the private beta phase.
 
 For more about the zpools.io service, visit https://zpools.io.
-For questions, join the community Discord: https://discord.gg/q8C6zJYQ.
+For questions, join the community Discord: https://zpools.io/discord.
 
 ---
 
@@ -135,4 +135,4 @@ Show job history:
 
 ## Support
 For questions, early access, and updates:
-Discord: https://discord.gg/q8C6zJYQ
+Discord: https://zpools.io/discord

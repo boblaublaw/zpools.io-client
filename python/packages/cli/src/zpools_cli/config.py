@@ -74,6 +74,7 @@ def build_client_config(
     pat: Optional[str] = None,
     ssh_host: Optional[str] = None,
     ssh_privkey: Optional[str] = None,
+    token_cache_dir: Optional[str] = None,
     rc_file: Optional[Path] = None
 ) -> Dict[str, str]:
     """
@@ -88,6 +89,7 @@ def build_client_config(
         pat: Explicit PAT token
         ssh_host: Explicit SSH host
         ssh_privkey: Explicit SSH private key path
+        token_cache_dir: Explicit token cache base directory
         rc_file: Path to RC file (default: ~/.config/zpools.io/zpoolrc)
         
     Returns:
@@ -101,8 +103,9 @@ def build_client_config(
         "api_url": get_config_value("ZPOOL_API_URL", api_url, rc_config, "https://api.zpools.io/v1"),
         "username": get_config_value("ZPOOL_USER", username, rc_config),
         "pat": get_config_value("ZPOOLPAT", pat, rc_config),
-        "ssh_host": get_config_value("SSH_HOST", ssh_host, rc_config),
+        "ssh_host": get_config_value("SSH_HOST", ssh_host, rc_config, "ssh.zpools.io"),
         "ssh_privkey": get_config_value("SSH_PRIVKEY_FILE", ssh_privkey, rc_config),
+        "token_cache_dir": get_config_value("ZPOOL_TOKEN_CACHE_DIR", token_cache_dir, rc_config, "/dev/shm/zpools.io"),
     }
     
     # Password: ONLY from environment variable (never CLI arg or RC file)

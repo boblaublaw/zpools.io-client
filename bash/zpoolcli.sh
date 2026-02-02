@@ -204,7 +204,15 @@ token_file_for_user() {
   local user="$1"
   local domain
   domain=$(echo "$2" | sed -E 's#^https?://##; s#/.*##')
-  echo "/dev/shm/zpool_token_${domain}_${user}"
+  if [[ -z "$user" ]]; then
+    die "Username required for token cache path"
+  fi
+  if [[ "$user" == *" "* ]]; then
+    die "Username must not contain spaces"
+  fi
+  local base="/dev/shm/zpools.io"
+  mkdir -p "$base"
+  echo "${base}/zpool_token_${domain}_${user}"
 }
 
 prompt_username_if_needed() {

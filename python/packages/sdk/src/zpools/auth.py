@@ -33,9 +33,14 @@ class AuthManager:
         self.username = username
         self.password = password
         self.pat = pat
+
+        if self.username and " " in self.username:
+            raise ValueError("Username must not contain spaces.")
+        if not self.username and not self.pat:
+            raise ValueError("Username or PAT is required.")
         
         self._raw_client = Client(base_url=self.api_url)
-        self._token_file = self._get_token_file_path()
+        self._token_file = self._get_token_file_path() if self.username else None
     
     def set_password(self, password: str):
         """Set the password for login if not provided during init."""
@@ -43,18 +48,26 @@ class AuthManager:
     
     def _get_token_file_path(self) -> Path:
         """Determine path for caching JWT tokens (mimics bash script behavior)."""
+        if not self.username:
+            raise ValueError("Username is required to determine token cache path.")
+        if " " in self.username:
+            raise ValueError("Username must not contain spaces.")
         domain_clean = self.api_url.replace("https://", "").replace("http://", "").split("/")[0]
-        user_safe = (self.username or "anon").replace(" ", "_")
+        user_safe = self.username
         # Use /dev/shm if available (Linux), else temp dir
         if Path("/dev/shm").exists():
-            return Path(f"/dev/shm/zpool_token_{domain_clean}_{user_safe}")
+            base_dir = Path("/dev/shm/zpools.io")
+            base_dir.mkdir(parents=True, exist_ok=True)
+            return base_dir / f"zpool_token_{domain_clean}_{user_safe}"
         else:
             import tempfile
-            return Path(tempfile.gettempdir()) / f"zpool_token_{domain_clean}_{user_safe}"
+            base_dir = Path(tempfile.gettempdir()) / "zpools.io"
+            base_dir.mkdir(parents=True, exist_ok=True)
+            return base_dir / f"zpool_token_{domain_clean}_{user_safe}"
     
     def _get_cached_token(self) -> Optional[str]:
         """Retrieve valid access token from cache if it exists and isn't expired."""
-        if not self._token_file.exists():
+        if self._token_file is None or not self._token_file.exists():
             return None
             
         try:

@@ -543,6 +543,23 @@ paths:
           description: SSH key registered successfully
         '400':
           description: Invalid SSH key format
+        '409':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      pubkey_id:
+                        description: Existing key ID for this public key
+                        type: string
+                    type: object
+                  message:
+                    description: e.g. SSH key already registered
+                    type: string
+                type: object
+          description: SSH key already registered (same key content yields same ID;
+            no duplicate stored)
       security:
       - CognitoAuthorizer: []
       summary: Register SSH public key

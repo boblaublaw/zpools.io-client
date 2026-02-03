@@ -65,6 +65,8 @@ from .post_pat_response_201_detail import PostPatResponse201Detail
 from .post_sshkey_body import PostSshkeyBody
 from .post_sshkey_response_201 import PostSshkeyResponse201
 from .post_sshkey_response_201_detail import PostSshkeyResponse201Detail
+from .post_sshkey_response_409 import PostSshkeyResponse409
+from .post_sshkey_response_409_detail import PostSshkeyResponse409Detail
 from .post_zpool_body import PostZpoolBody
 from .post_zpool_body_new_size_in_gib import PostZpoolBodyNewSizeInGib
 from .post_zpool_body_volume_type import PostZpoolBodyVolumeType
@@ -132,6 +134,8 @@ __all__ = (
     "PostSshkeyBody",
     "PostSshkeyResponse201",
     "PostSshkeyResponse201Detail",
+    "PostSshkeyResponse409",
+    "PostSshkeyResponse409Detail",
     "PostZpoolBody",
     "PostZpoolBodyNewSizeInGib",
     "PostZpoolBodyVolumeType",

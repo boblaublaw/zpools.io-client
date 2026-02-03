@@ -5,7 +5,11 @@ from rich.console import Console
 from zpools import ZPoolsClient
 from zpools._generated.api.authentication import get_hello
 from zpools_cli.commands import zpool, sshkey, pat, job, billing, zfs
-from zpools_cli.config import build_client_config
+from zpools_cli.config import (
+    COMMANDS_NEEDING_CONFIG,
+    build_client_config,
+    run_config_wizard,
+)
 from zpools_cli.utils import format_error_response
 from zpools_cli.shell_completion import completion_command
 
@@ -19,6 +23,10 @@ app.add_typer(zfs.app, name="zfs")
 console = Console()
 
 
+def _default_rc_path() -> Path:
+    return Path.home() / ".config" / "zpools.io" / "zpoolrc"
+
+
 @app.callback()
 def main_callback(
     ctx: typer.Context,
@@ -26,15 +34,18 @@ def main_callback(
         None,
         "--rcfile",
         help="Path to zpoolrc config file (default: ~/.config/zpools.io/zpoolrc)",
-        exists=True,
         file_okay=True,
         dir_okay=False,
-        readable=True
     )
 ):
     """zpools.io CLI - Manage zpools, jobs, SSH keys, and billing."""
-    # Build config once at startup and store in context
-    ctx.obj = build_client_config(rc_file=rcfile)
+    rc_file_path = rcfile if rcfile is not None else _default_rc_path()
+    if not rc_file_path.exists() and ctx.invoked_subcommand in COMMANDS_NEEDING_CONFIG:
+        if not run_config_wizard(rc_file_path, console):
+            raise typer.Exit(0)
+    config = build_client_config(rc_file=rc_file_path)
+    config["rc_file_path"] = rc_file_path
+    ctx.obj = config
 
 @app.command()
 def hello(ctx: typer.Context):

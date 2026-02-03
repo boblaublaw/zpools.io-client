@@ -45,7 +45,7 @@ class ZPoolsClient(PATMixin, SSHKeyMixin, ZPoolMixin, JobMixin, BillingMixin, ZF
             pat: Personal Access Token (alternative to JWT)
             ssh_host: SSH hostname for ZFS operations
             ssh_privkey: Path to SSH private key file
-            token_cache_dir: Base directory for JWT token cache (default: /dev/shm/zpools.io)
+            token_cache_dir: Base directory for JWT token cache (unset = no cache; set explicitly to enable)
         """
         self._auth = AuthManager(
             api_url=api_url,

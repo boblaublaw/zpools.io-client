@@ -211,7 +211,7 @@ token_file_for_user() {
   if [[ "$user" == *" "* ]]; then
     die "Username must not contain spaces"
   fi
-  local base="${ZPOOL_TOKEN_CACHE_DIR:-/dev/shm/zpools.io}"
+  local base="${ZPOOL_TOKEN_CACHE_DIR:-}"
   if [[ -z "$base" ]]; then
     echo ""
     return

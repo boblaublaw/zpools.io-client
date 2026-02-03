@@ -12,8 +12,6 @@ from ._generated.models.post_login_body import PostLoginBody
 
 class AuthManager:
     """Manages authentication tokens (JWT and PAT) for zpools.io API."""
-    
-    DEFAULT_TOKEN_CACHE_DIR = "/dev/shm/zpools.io"
 
     def __init__(
         self,
@@ -31,15 +29,15 @@ class AuthManager:
             username: Username for JWT authentication
             password: Password for JWT authentication
             pat: Personal Access Token (alternative to JWT)
-            token_cache_dir: Base directory for JWT token cache (default: /dev/shm/zpools.io).
-                Set to empty string to disable JWT token caching.
+            token_cache_dir: Base directory for JWT token cache. If unset or empty,
+                JWT tokens are not cached (most secure). Set explicitly to enable caching.
         """
         self.api_url = api_url
         self.username = username
         self.password = password
         self.pat = pat
-        # Empty or whitespace means disable cache; None means use default
-        resolved = (token_cache_dir if token_cache_dir is not None else self.DEFAULT_TOKEN_CACHE_DIR).strip()
+        # Only cache when explicitly set; unset or empty means no cache (secure default)
+        resolved = (token_cache_dir or "").strip()
         self._token_cache_dir = resolved if resolved else ""
 
         if self.username and " " in self.username:

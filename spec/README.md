@@ -5,7 +5,6 @@ This directory contains OpenAPI specification files for the zpools.io API.
 ## Files
 
 - **`stage-definition.yaml`** - Production API specification
-- **`stage-definition-dev.yaml`** - Development API specification
 
 ## Usage
 
@@ -17,7 +16,6 @@ These OpenAPI specs are used to:
 ## Version Environments
 
 - **Production (`stage-definition.yaml`)**: Stable API for production use
-- **Development (`stage-definition-dev.yaml`)**: Latest features, may be unstable
 
 ## Note
 

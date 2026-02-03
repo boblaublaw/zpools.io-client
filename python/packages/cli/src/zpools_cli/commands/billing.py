@@ -296,18 +296,22 @@ def get_summary(
             # Totals
             totals = summary.totals if summary.totals is not UNSET else None
             if totals:
-                console.print("\n[bold]Totals[/bold]")
                 storage = totals.storage_charges if totals.storage_charges is not UNSET else 0
                 tou = totals.time_of_use_charges if totals.time_of_use_charges is not UNSET else 0
                 credits_applied = totals.credits_applied if totals.credits_applied is not UNSET else 0
                 period_net = totals.period_net if totals.period_net is not UNSET else 0
                 ending_balance = totals.ending_balance if totals.ending_balance is not UNSET else 0
 
+                # Period-specific totals
+                console.print(f"\n[bold]Period Totals[/bold] [dim]({from_date} to {to_date})[/dim]")
                 console.print(f"  Storage Charges:     [red]-${format_usd(storage)}[/red]")
                 console.print(f"  Time-of-Use Charges: [red]-${format_usd(tou)}[/red]")
                 console.print(f"  Credits Applied:     [green]+${format_usd(credits_applied)}[/green]")
-                console.print(f"  [bold]Period Net:          ${format_usd(period_net)}[/bold]")
-                console.print(f"  [bold]Ending Balance:      ${format_usd(ending_balance)}[/bold]")
+                console.print(f"  [bold]Net Change:          ${format_usd(period_net)}[/bold]")
+
+                # Current account balance (independent of period)
+                console.print(f"\n[bold]Account Balance[/bold]")
+                console.print(f"  [bold]Balance Now:         ${format_usd(ending_balance)}[/bold]")
 
             # Note about ending balance
             note = response.parsed.detail.note if response.parsed.detail.note is not UNSET else ""

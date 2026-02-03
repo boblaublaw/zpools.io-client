@@ -77,7 +77,7 @@ class BillingMixin:
             - storage_charges: Grouped storage charges by zpool/rate
             - time_of_use_charges: Scrub jobs, egress, etc.
             - credits: Applied credits
-            - totals: Period totals and ending balance
+            - totals: Period totals and current balance
         """
         from .._generated.api.billing import get_billing_summary
         from .._generated.types import UNSET

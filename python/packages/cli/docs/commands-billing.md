@@ -124,14 +124,16 @@ Shows an **aggregated** billing summary for a date range: storage charges groupe
    - **Amount** — Credit amount in USD (shown as positive).
    - **Note** — Optional note.
 
-5. **Totals** — Summary lines:
+5. **Period Totals** — Summary of charges for the selected date range:
    - **Storage Charges** — Total storage charges (shown as negative).
    - **Time-of-Use Charges** — Total time-of-use charges (negative).
    - **Credits Applied** — Total credits (positive).
-   - **Period Net** — Net change over the period (USD).
-   - **Ending Balance** — Balance at end of period (USD).
+   - **Net Change** — Net change over the period (USD).
 
-6. **Note** — Optional footer message (e.g. disclaimers or timing of balance updates).
+6. **Account Balance** — Current balance (independent of period):
+   - **Balance Now** — Current account balance (USD).
+
+7. **Note** — Optional footer message (e.g. disclaimers or timing of balance updates).
 
 If summary information is unavailable, the CLI prints *Summary information unavailable.*
 

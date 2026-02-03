@@ -2,64 +2,38 @@
 
 This directory contains the Python SDK and CLI (`zpcli`) for zpools.io.
 
+## Documentation
+
+- **Top-level docs:** [../docs/](../docs/README.md) — quickstart, configuration, authentication, reference, troubleshooting (language-independent).
+- **CLI:** [packages/cli/README.md](packages/cli/README.md) — Installation, command reference, troubleshooting.
+- **SDK:** [packages/sdk/README.md](packages/sdk/README.md) — Installation, quickstart, API reference, troubleshooting.
+
 ## Prerequisites
 
-*   **Python 3.9+**
-*   **uv** (Fast Python package manager)
+- **Python 3.9+**
+- **uv** (recommended): `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Ensure `~/.local/bin` is in your PATH.
 
-To install `uv`:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-After installation, ensure `~/.local/bin` is in your PATH:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-# Add to ~/.bashrc or ~/.zshrc to make permanent
-```
-
-## Installation (Recommended)
-
-Install `zpcli` as a global command using UV tools:
+## Install CLI (recommended)
 
 ```bash
 cd python
 uv tool install --editable packages/cli
 ```
 
-This installs `zpcli` in editable mode:
-- ✅ Available from any directory
-- ✅ Code changes reflected immediately (no reinstall needed)
-- ✅ Tab completion works
-- ✅ Only reinstall if you change dependencies
+Then: `zpcli completion --install` (optional), `zpcli --help`. Tab completion works with the installed `zpcli`; use the CLI [installation guide](packages/cli/docs/installation.md) for pip and options.
 
-After installation:
-```bash
-# Enable tab completion
-zpcli --install-completion
-
-# Restart your shell, then use zpcli from anywhere
-zpcli --help
-zpcli pat list
-zpcli billing balance
-```
-
-## Development Setup (Alternative)
-
-If you prefer using `uv run` instead of installing globally:
+## Alternative: uv run
 
 ```bash
 cd python
 uv sync
-
-# Run commands with uv run
 uv run zpcli --help
-uv run zpcli pat list
 ```
 
-**Note**: Tab completion doesn't work with `uv run zpcli`. Use the installation method above for tab completion.
+Tab completion does not work with `uv run zpcli`.
 
 ## Development
 
-*   **SDK Source:** `packages/sdk/src/zpools`
-*   **CLI Source:** `packages/cli/src/zpools_cli`
+- **SDK source:** `packages/sdk/src/zpools`
+- **CLI source:** `packages/cli/src/zpools_cli`

@@ -38,7 +38,7 @@ mkdir -p ~/.config/zpools.io
 printf '%s\n' 'ZPOOL_USER=your-username' > ~/.config/zpools.io/zpoolrc
 ```
 
-Password cannot be set in the rcfile; you will be prompted when needed, or set `ZPOOL_PASSWORD` in the environment. For non-interactive use, use a [Personal Access Token](authentication.md) (`ZPOOLPAT`).
+Password cannot be set in the rcfile; you will be prompted when needed, or set `ZPOOL_PASSWORD` in the environment. For non-interactive use, use a [Personal Access Token](authentication.md#pat) (`ZPOOLPAT`).
 
 **ZFS over SSH** (required for steps 7–10): If you did not set an SSH key in the wizard, edit the rcfile and set your SSH private key path (and optionally `SSH_HOST`; it defaults to `ssh.zpools.io`), for example:
 
@@ -57,7 +57,7 @@ zpcli hello
 
 ## 4. Claim a beta code (if required)
 
-During the beta, a **beta invite code** is required to activate your account. See the [status page](https://zpools.io/status) on the main website for beta access and support.
+> **Beta:** During beta, a **beta invite code** is required to activate your account. Check [Discord](https://zpools.io/discord) for beta access and support. This step will not be required after general availability.
 
 When you have a code, assign it to a variable and claim it (you may be prompted for your password):
 
@@ -88,6 +88,8 @@ zpcli sshkey list
 ---
 
 ## 6. Create a zpool
+
+> **Beta:** During beta, zpools are limited to **125 GiB** and **one zpool per user**. These limits will be relaxed after general availability.
 
 Create a zpool and wait for it to finish so you have a remote zpool for the validation steps below. Assign the size and type to variables so later steps can refer to them; then create and capture the zpool ID from the list.
 

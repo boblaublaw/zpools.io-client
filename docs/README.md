@@ -11,7 +11,7 @@ Documentation for the **zpools.io** client: CLI (`zpcli`) and Python SDK. Use th
 
 ### Getting started
 
-- [Quickstart](quickstart.md) — End-to-end "first zpool" flow: sign up, install a client, configure, claim a beta code, create a zpool (and optionally snapshot/send). Language-agnostic; links to package-specific install and usage.
+- [Quickstart](quickstart.md) — End-to-end "first zpool" flow: sign up, install a client, configure, create a zpool (and optionally snapshot/send). Language-agnostic; links to package-specific install and usage. *(Beta: includes beta code claim step.)*
 
 ### Configuration and authentication
 

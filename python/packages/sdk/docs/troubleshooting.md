@@ -17,7 +17,7 @@ except UnexpectedStatus as e:
     print(f"API error: {e.status_code} - {e.content}")
 ```
 
-- **401** — Authentication failed. Check username/password or PAT. Use PAT for non-interactive use. See [Authentication](../../../../docs/authentication.md).
+- **401** — Authentication failed. Check username/password or PAT. Use PAT for non-interactive use. See [Authentication](../../../../docs/authentication.md#using-a-pat).
 - **403** — Forbidden; check PAT scopes or account permissions.
 - **4xx/5xx** — Inspect `e.content` for the API error message.
 

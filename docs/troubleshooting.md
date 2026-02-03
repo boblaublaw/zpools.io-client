@@ -5,14 +5,14 @@ This page covers **conceptual** causes and fixes. For tool-specific errors (exit
 ## Authentication failures
 
 - **Wrong credentials:** Verify username and password (or PAT). For PAT, ensure it has the right scopes and has not been revoked.
-- **Missing rcfile or env:** Ensure `ZPOOL_USER` and either password (interactive) or PAT (non-interactive) are set. See [Configuration](configuration.md) and [Authentication](authentication.md).
+- **Missing rcfile or env:** Ensure `ZPOOL_USER` and either password (interactive) or PAT (non-interactive) are set. See [Configuration](configuration.md#required-parameters) and [Authentication](authentication.md#pat).
 - **Token expired:** JWT tokens are short-lived. If you see auth errors after a long idle period, log in again or use a PAT.
 - **Testing auth:** To validate credentials without running a full operation, use `zpcli hello` — it is intended to test connectivity and authenticate. See the [CLI command reference](../python/packages/cli/docs/commands.md) (hello command).
 
 ## Missing rcfile or environment
 
 - Create `~/.config/zpools.io/zpoolrc` with at least `ZPOOL_USER`. For ZFS over SSH add `SSH_PRIVKEY_FILE`.
-- Or set the same keys via environment variables (env overrides rcfile). Example: `export ZPOOL_USER=myuser`. See [Configuration](configuration.md) for all keys and examples.
+- Or set the same keys via environment variables (env overrides rcfile). Example: `export ZPOOL_USER=myuser`. See [Configuration](configuration.md#environment-overrides) for all keys and examples.
 
 ## SSH issues
 
@@ -23,7 +23,7 @@ This page covers **conceptual** causes and fixes. For tool-specific errors (exit
 ## Job timeouts
 
 - Some operations (create zpool, modify, scrub) are **asynchronous** and return a job ID. If you wait for completion, the client polls until the job finishes or a timeout is reached.
-- **Timeout too short:** Increase the wait timeout if your operation is slow (see [Async jobs](reference/async-jobs.md)). CLI: use `--wait` and check for timeout options in the [command reference](../python/packages/cli/docs/commands.md).
+- **Timeout too short:** Increase the wait timeout if your operation is slow (see [Async jobs](reference/async-jobs.md#polling-and-timeouts)). CLI: use `--wait` and check for timeout options in the [command reference](../python/packages/cli/docs/commands.md).
 - **Job failed:** Inspect job status (CLI: `zpcli job get <job_id>`; SDK: `get_job`). See [reference/async-jobs.md](reference/async-jobs.md).
 
 ## ZFS errors
@@ -34,7 +34,7 @@ This page covers **conceptual** causes and fixes. For tool-specific errors (exit
 ## Non-interactive use (CI/CD, scripts)
 
 - Use a **PAT** instead of username/password. Set `ZPOOLPAT` (or equivalent) in the environment or pass it explicitly to the client.
-- Do not rely on interactive prompts in automation. See [Authentication](authentication.md).
+- Do not rely on interactive prompts in automation. See [Authentication](authentication.md#using-a-pat).
 
 ## Package-specific troubleshooting
 

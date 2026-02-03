@@ -4,7 +4,7 @@
 
 **Scope and permitted use:** The ZFS module is a **wrapper** intended to facilitate ZFS and zpool operations over SSH. Operations are **restricted**. The only expected, supported, and permitted use cases are: sending and receiving data (e.g. `zfs send` / `zfs recv`), listing datasets, and managing datasets (snapshots, destroy). Datasets **cannot be mounted** on the service; **contents cannot be examined** (e.g. no general file or directory access). Use the CLI only for these intended operations.
 
-**Requirements:** ZFS over SSH uses your config (rcfile or environment). You need your username (**ZPOOL_USER**) and SSH private key path (**SSH_PRIVKEY_FILE**). Your SSH **public** key must be registered with the service (`zpcli sshkey add`). See [Configuration](../../../../docs/configuration.md) and [SSH keys](commands-sshkey.md).
+**Requirements:** ZFS over SSH uses your config (rcfile or environment). You need your username (**ZPOOL_USER**) and SSH private key path (**SSH_PRIVKEY_FILE**). Your SSH **public** key must be registered with the service (`zpcli sshkey add`). See [Configuration](../../../../docs/configuration.md#required-parameters) and [SSH keys](commands-sshkey.md).
 
 **Asides:** In this document we use blockquote asides:
 
@@ -197,6 +197,6 @@ zpcli zfs ssh zfs get all law-hotel-shape-community
 ## See also
 
 - [Command reference](commands.md)
-- [Configuration](../../../../docs/configuration.md) — SSH_HOST, SSH_PRIVKEY_FILE, ZPOOL_USER, rcfile
+- [Configuration](../../../../docs/configuration.md#required-parameters) — SSH_HOST, SSH_PRIVKEY_FILE, ZPOOL_USER, rcfile
 - [SSH keys](commands-sshkey.md) — Register your public key for ZFS over SSH
 - [Zpool commands](commands-zpool.md) — List zpools to get zpool IDs for use as dataset roots

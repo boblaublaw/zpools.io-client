@@ -4,7 +4,7 @@ Minimal code to list zpools, create a zpool, and check job status. Copy-paste an
 
 ## Authenticate
 
-Use username/password (JWT) or a Personal Access Token (PAT). See [Authentication](../../../../docs/authentication.md).
+Use username/password (JWT) or a Personal Access Token (PAT). See [Authentication](../../../../docs/authentication.md#pat).
 
 ```python
 from zpools import ZPoolsClient

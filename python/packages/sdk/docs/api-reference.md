@@ -22,7 +22,7 @@ ZPoolsClient(
 - **username** / **password** — JWT auth.
 - **pat** — Personal Access Token (alternative to JWT).
 - **ssh_host** / **ssh_privkey** — For ZFS-over-SSH helpers (optional).
-- **token_cache_dir** — Base directory for JWT token cache (default: `/dev/shm/zpools.io`). Optional.
+- **token_cache_dir** — Base directory for JWT token cache (default: no cache). Optional.
 
 The CLI layer typically loads rcfile and env and passes these into the client.
 
@@ -48,7 +48,7 @@ Sizes in GiB. See [Storage units](../../../../docs/reference/storage-units.md) a
 - **add_sshkey(public_key)** — Add a public key (string).
 - **delete_sshkey(pubkey_id)** — Delete an SSH key by ID.
 
-## Personal Access Tokens (PATs)
+## PATs
 
 - **list_pats()** — List PATs.
 - **create_pat(label, scopes=None, expiry=None, tenant_id=None)** — Create a PAT (requires JWT first).
@@ -62,7 +62,7 @@ Sizes in GiB. See [Storage units](../../../../docs/reference/storage-units.md) a
 
 ## ZFS operations (over SSH)
 
-Requires **ssh_host** and **ssh_privkey** (and account SSH key registered). See [Configuration](../../../../docs/configuration.md).
+Requires **ssh_host** and **ssh_privkey** (and account SSH key registered). See [Configuration](../../../../docs/configuration.md#required-parameters).
 
 - **ssh_exec(command, stdin_data=None, ssh_key_file=None)** — Run a command over SSH. Returns (exit_code, stdout, stderr).
 - **zfs_send_to_remote(local_snapshot, remote_dataset, ...)** — Send a local ZFS stream to remote.

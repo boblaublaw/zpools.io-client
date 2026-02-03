@@ -58,7 +58,7 @@ pip install -e packages/cli
 1. **Tab completion (optional):**  
    `zpcli completion --install` then restart your shell.
 
-2. **Configuration:** Create `~/.config/zpools.io/zpoolrc` with at least `ZPOOL_USER` and `ZPOOL_API_URL`. For ZFS commands add `SSH_HOST` and `SSH_PRIVKEY_FILE`. See [Configuration](../../../../docs/configuration.md) and [Authentication](../../../../docs/authentication.md).
+2. **Configuration:** Create `~/.config/zpools.io/zpoolrc` with at least `ZPOOL_USER` and `ZPOOL_API_URL`. For ZFS commands add `SSH_HOST` and `SSH_PRIVKEY_FILE`. See [Configuration](../../../../docs/configuration.md#required-parameters) and [Authentication](../../../../docs/authentication.md).
 
 ## See also
 

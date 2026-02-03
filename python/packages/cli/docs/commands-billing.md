@@ -2,7 +2,7 @@
 
 `zpcli billing` — View account balance, transaction history, and aggregated summary; redeem credit codes (e.g. beta invite); or start a payment flow to add credits. Use these commands to understand what you’re charged for (storage, time-of-use) and to manage your balance.
 
-**Authentication:** JWT or PAT. Billing endpoints require the `billing` scope if you use a PAT. See [Authentication](../../../../docs/authentication.md). For **claim**, you must be authenticated with **JWT** (username/password), not a PAT.
+**Authentication:** JWT or PAT. Billing endpoints require the `billing` scope if you use a PAT. See [Authentication](../../../../docs/authentication.md#scopes). For **claim**, you must be authenticated with **JWT** (username/password), not a PAT.
 
 ## Commands
 
@@ -221,5 +221,5 @@ zpcli billing start 25 --json
 ## See also
 
 - [Command reference](commands.md)
-- [Authentication](../../../../docs/authentication.md) — JWT vs PAT, billing scope, non-interactive use
+- [Authentication](../../../../docs/authentication.md#scopes) — JWT vs PAT, billing scope, non-interactive use
 - [Storage units](../../../../docs/reference/storage-units.md) — GiB vs GB; summary may show sizes in GB; zpool sizes elsewhere use GiB

@@ -31,7 +31,7 @@ The zpools.io client (CLI and SDK) reads configuration from an **rcfile** and fr
 | `LOCAL_POOL` | Local zpool/dataset for BzFS. |
 | `REMOTE_POOL` | Remote target (e.g. `user@ssh.zpools.io:remote-zpool-id/remote-dataset`). |
 
-**Password:** Password cannot be configured in the rcfile; the client does not read it from the rcfile. To supply a password use the `ZPOOL_PASSWORD` environment variable or an interactive prompt. The account password is not appropriate for scripts or other automation: it has access to billing and other non-operational mechanisms. For automation, use a [Personal Access Token](authentication.md) (e.g. `ZPOOLPAT` env or client argument), scoped according to the principle of least privilege.
+**Password:** Password cannot be configured in the rcfile; the client does not read it from the rcfile. To supply a password use the `ZPOOL_PASSWORD` environment variable or an interactive prompt. The account password is not appropriate for scripts or other automation: it has access to billing and other non-operational mechanisms. For automation, use a [Personal Access Token](authentication.md#pat) (e.g. `ZPOOLPAT` env or client argument), scoped according to the principle of least privilege.
 
 ## Environment overrides
 
@@ -42,7 +42,7 @@ Environment variables override rcfile values. Commonly used:
 - `ZPOOLPAT` — Personal Access Token (preferred for automation and non-interactive use)
 - `ZPOOL_API_URL` — API endpoint
 
-CLI and SDK both respect these. See [Authentication](authentication.md) for how JWT and PAT are used.
+CLI and SDK both respect these. See [Authentication](authentication.md#using-a-pat) for how JWT and PAT are used.
 
 ## Example rcfile
 

@@ -11,13 +11,13 @@ CLI-specific errors and fixes. For conceptual causes (auth, SSH, jobs, etc.), se
 ## Common CLI messages
 
 - **"ZPOOL_USER not configured" / "SSH_HOST not configured" / "SSH_PRIVKEY_FILE not configured"**  
-  Set the missing key in `~/.config/zpools.io/zpoolrc` or via environment. See [Configuration](../../../../docs/configuration.md).
+  Set the missing key in `~/.config/zpools.io/zpoolrc` or via environment. See [Configuration](../../../../docs/configuration.md#required-parameters).
 
 - **"SSH private key not found"**  
   Ensure `SSH_PRIVKEY_FILE` points to an existing key file with correct permissions (e.g. 600).
 
 - **Authentication failed**  
-  Check username and password (or PAT). Use a PAT for non-interactive use. See [Authentication](../../../../docs/authentication.md).
+  Check username and password (or PAT). Use a PAT for non-interactive use. See [Authentication](../../../../docs/authentication.md#using-a-pat).
 
 - **Request errors**  
   The CLI prints the error message. For job-related issues see [Async jobs](../../../../docs/reference/async-jobs.md) and use `zpcli job get <job_id>` to inspect.

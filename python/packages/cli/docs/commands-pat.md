@@ -2,7 +2,7 @@
 
 `zpcli pat` — Manage Personal Access Tokens (PATs) via the CLI.
 
-For PAT concepts, scopes, and when to use PATs vs JWT, see [Authentication](../../../../docs/authentication.md). PAT key IDs use the standard [Resource IDs](../../../../docs/reference/ids.md) format.
+For PAT concepts, scopes, and when to use PATs vs JWT, see [Authentication](../../../../docs/authentication.md#pat). PAT key IDs use the standard [Resource IDs](../../../../docs/reference/ids.md) format.
 
 ## Commands
 
@@ -137,6 +137,6 @@ zpcli pat revoke law-hotel-shape-community --json
 
 ## See also
 
-- [Authentication](../../../../docs/authentication.md) — PAT concepts, scopes, JWT vs PAT
+- [Authentication](../../../../docs/authentication.md#pat) — PAT concepts, scopes, JWT vs PAT
 - [Command reference](commands.md)
 - [Resource IDs](../../../../docs/reference/ids.md) — Key ID format

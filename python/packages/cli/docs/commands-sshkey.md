@@ -2,7 +2,7 @@
 
 `zpcli sshkey` — Manage SSH public keys for your account. A registered SSH key is required for ZFS over SSH.
 
-See also: [Configuration](../../../../docs/configuration.md) (e.g. `SSH_PRIVKEY_FILE`), [Authentication](../../../../docs/authentication.md), [Resource IDs](../../../../docs/reference/ids.md) (key IDs).
+See also: [Configuration](../../../../docs/configuration.md#required-parameters) (e.g. `SSH_PRIVKEY_FILE`), [Authentication](../../../../docs/authentication.md#scopes), [Resource IDs](../../../../docs/reference/ids.md) (key IDs).
 
 ## Commands
 
@@ -102,5 +102,5 @@ Tab completion for `zpcli sshkey add` (e.g. completing files under `~/.ssh/` or 
 
 - [Command reference](commands.md)
 - [Resource IDs](../../../../docs/reference/ids.md) — Key IDs (pubkey_id) and the four-word hyphenated format
-- [Configuration](../../../../docs/configuration.md) — `SSH_PRIVKEY_FILE`, rcfile
-- [Authentication](../../../../docs/authentication.md) — JWT, PAT, scopes
+- [Configuration](../../../../docs/configuration.md#required-parameters) — `SSH_PRIVKEY_FILE`, rcfile
+- [Authentication](../../../../docs/authentication.md#scopes) — JWT, PAT, scopes

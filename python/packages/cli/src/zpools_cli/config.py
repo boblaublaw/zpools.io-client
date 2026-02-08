@@ -137,7 +137,7 @@ def run_config_wizard(rc_file_path: Path, console) -> bool:
         lines.append(f"SSH_PRIVKEY_FILE={ssh_privkey_file}")
     optional_overrides = [
         "",
-        "# Full reference: https://github.com/boblaublaw/zpools.io-client/blob/main/docs/configuration.md",
+        "# Full reference: https://github.com/zpools-io/zpools-io-client/blob/main/docs/configuration.md",
         "# Optional overrides (uncomment and set as needed):",
         "# 1. ZPOOL_API_URL=https://api.zpools.io/v1",
         "# 2. SSH_HOST=ssh.zpools.io",

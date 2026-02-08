@@ -36,8 +36,8 @@ Optional but useful tools:
 ## Installation
 1. Clone the client repository:
 
-   git clone https://github.com/boblaublaw/zpools.io-client
-   cd zpools.io-client/bash
+   git clone https://github.com/zpools-io/zpools-io-client
+   cd zpools-io-client/bash
 
 2. Ensure the main CLI script is executable:
 

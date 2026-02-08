@@ -11,7 +11,7 @@ Install the official Python SDK for zpools.io to use the API from Python (zpools
 
 ## Install from repo
 
-From the **zpools.io-client** repo root:
+From the **zpools-io-client** repo root:
 
 ```bash
 cd python
@@ -28,7 +28,7 @@ pip install -e packages/sdk
 From another directory (path to your clone):
 
 ```bash
-pip install -e /path/to/zpools.io-client/python/packages/sdk
+pip install -e /path/to/zpools-io-client/python/packages/sdk
 ```
 
 Using the repo’s uv workspace (for development):

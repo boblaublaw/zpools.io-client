@@ -24,7 +24,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ## Install with uv (recommended)
 
-From the **zpools.io-client** repo root:
+From the **zpools-io-client** repo root:
 
 ```bash
 cd python

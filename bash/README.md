@@ -1,4 +1,4 @@
-# Bash Prototype CLI — zpools.io-client
+# Bash Prototype CLI — zpools-io-client
 
 ## Deprecation notice
 

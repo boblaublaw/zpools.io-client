@@ -1,4 +1,4 @@
-# zpools.io-client
+# zpools-io-client
 
 Open-source client repository for **zpools.io** — home-use ZFS storage with durable offsite replication. For service details, pricing, and sign-up, visit https://zpools.io.
 

@@ -14,7 +14,7 @@ Create an account at **https://zpools.io**. You will get a **username**; you nee
 
 ## 2. Install the CLI
 
-Install the CLI (Python 3.9+, **uv** or **pip**). See **[CLI Installation](python/packages/cli/docs/installation.md)** for step-by-step install, PATH setup, and first-time options (tab completion, rcfile). The CLI is not yet on PyPI; install from the repo as described there.
+Install the CLI (Python 3.9+, **uv** or **pip**). See **[CLI Installation](../python/packages/cli/docs/installation.md)** for step-by-step install, PATH setup, and first-time options (tab completion, rcfile). The CLI is not yet on PyPI; install from the repo as described there.
 
 Verify:
 

@@ -1,0 +1,25 @@
+[project]
+name = "zpools-cli"
+version = "1.0.0"
+description = "Command line interface for zpools.io"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "zpools.io", email = "zpools.io@gmail.com"}
+]
+dependencies = [
+    "zpools-sdk",
+    "typer",
+    "rich",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+zpcli = "zpools_cli.main:app"
+
+[tool.uv.sources]
+zpools-sdk = { workspace = true }

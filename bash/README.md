@@ -1,11 +1,18 @@
 # Bash Prototype CLI — zpools.io-client
 
+## Deprecation notice
+
+**The Bash CLI is deprecated.** Documentation and support focus on the **Python CLI** (`zpcli`) and the **Python SDK**. Use the Python client and see the top-level **[docs/](../docs/README.md)** for current documentation (quickstart, configuration, authentication, reference, troubleshooting). The Bash prototype may remain in the repo for reference but is not a first-class documentation target.
+
+---
+
 ## Status
+
 This Bash CLI is an early prototype for interacting with the zpools.io API and SSH-based ZFS operations.
-It’s functional for basic workflows but subject to breaking changes during the private beta phase.
+It's functional for basic workflows but subject to breaking changes during the private beta phase.
 
 For more about the zpools.io service, visit https://zpools.io.
-For questions, join the community Discord: https://discord.gg/q8C6zJYQ.
+For questions, join the community Discord: https://zpools.io/discord.
 
 ---
 
@@ -29,8 +36,8 @@ Optional but useful tools:
 ## Installation
 1. Clone the client repository:
 
-   git clone https://github.com/boblaublaw/zpools.io-client
-   cd zpools.io-client/bash
+   git clone https://github.com/zpools-io/zpools-io-client
+   cd zpools-io-client/bash
 
 2. Ensure the main CLI script is executable:
 
@@ -42,9 +49,9 @@ Optional but useful tools:
 
    Example content:
 ```
-ZPOOLUSER="your_username_here"
+ZPOOL_USER="your_username_here"
 SSH_PRIVKEY_FILE="/home/you/.ssh/id_ed25519"
-API_DOMAIN="https://api.zpools.io/v1"
+ZPOOL_API_URL="https://api.zpools.io/v1"
 SSH_HOST="ssh.zpools.io"
 BZFS_BIN="/home/you/bin/bzfs"
 LOCAL_POOL="rpool/USERDATA/you_xxxxxx"
@@ -86,13 +93,13 @@ Run any group without arguments for detailed help:
 
 ## Token Behavior
  - The CLI prompts for your zpools.io username and password when needed.
- - Tokens are cached securely in a temporary location for short reuse windows (e.g., /dev/shm).
+ - Tokens are cached securely in a temporary location for short reuse windows (e.g., /dev/shm/zpools.io).
  - Long-lived Personal Access Tokens (PATs) are TBD and will be documented later.
 
 ---
 
 ## SSH / ZFS Operations
-The zfs and bzfs command groups communicate with zpools.io’s SSH endpoints.
+The zfs and bzfs command groups communicate with zpools.io's SSH endpoints.
 Ensure that:
 - SSH_PRIVKEY_FILE points to a valid private key
 - SSH_HOST is set correctly in your rcfile
@@ -118,22 +125,14 @@ Show job history:
 ---
 
 ## Troubleshooting
-- If you see “Authentication failed”, ensure your username and password are correct.
-- If API_DOMAIN or SSH_HOST are missing, set them in your rcfile.
+- If you see "Authentication failed", ensure your username and password are correct.
+- If ZPOOL_API_URL or SSH_HOST are missing, set them in your rcfile.
 - If you run non-interactively, Personal Access Tokens (PAT) are recommended. (Docs TBD)
 - For SSH issues, verify that your private key file exists and has proper permissions.
 - Running `bash -x ./zpoolcli.sh ...` will show underlying operations.
 
 ---
 
-## Next Steps
-- QUICKSTART.md will provide copy-paste setup and example workflows.
-- llm.txt will contain a complete internal reference for API, CLI, and SDK design.
-- PAT and bzfs documentation coming soon.
-
----
-
 ## Support
 For questions, early access, and updates:
-Discord: https://discord.gg/q8C6zJYQ
-
+Discord: https://zpools.io/discord

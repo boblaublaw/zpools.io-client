@@ -1,0 +1,1261 @@
+openapi: 3.0.1
+info:
+  title: ZpoolsAPI
+  version: 2026-01-23 05:40:36UTC
+servers:
+- url: https://api.zpools.io/v1
+tags:
+- name: Authentication
+  description: Authentication and credential verification
+- name: Billing
+  description: Account balance, payments, and billing history
+- name: SSH Keys
+  description: Manage SSH public keys for zpool access
+- name: Personal Access Tokens
+  description: Manage API access tokens
+- name: Zpools
+  description: Create and manage ZFS storage pools
+- name: Jobs
+  description: Track background operations and jobs
+paths:
+  /hello:
+    get:
+      responses:
+        default:
+          description: Default response for GET /hello
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                type: object
+          description: Success
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Test authentication
+      description: Simple authenticated endpoint to verify API connectivity and test
+        your JWT tokens or PAT.
+      tags:
+      - Authentication
+  /login:
+    post:
+      responses:
+        default:
+          description: Default response for POST /login
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      access_token:
+                        description: JWT access token
+                        type: string
+                      expires_in:
+                        description: Token expiration in seconds
+                        type: integer
+                      id_token:
+                        description: JWT ID token
+                        type: string
+                      refresh_token:
+                        description: JWT refresh token
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Authentication successful
+        '401':
+          description: Invalid credentials
+      summary: Authenticate user and obtain JWT tokens
+      description: Authenticate with username/password and receive Cognito JWT tokens
+        for accessing protected endpoints.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            example:
+              password: SecurePassword123
+              username: user@example.com
+            schema:
+              properties:
+                username:
+                  description: User's username
+                  type: string
+                password:
+                  description: User's password
+                  type: string
+              required:
+              - username
+              - password
+              type: object
+        required: true
+  /billing/balance:
+    get:
+      responses:
+        default:
+          description: Default response for GET /billing/balance
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      balance:
+                        properties:
+                          balance_usd:
+                            description: Balance in USD
+                            type: number
+                          customer:
+                            description: Customer username
+                            type: string
+                          first_transaction:
+                            description: First transaction timestamp
+                            format: date-time
+                            nullable: true
+                            type: string
+                          last_transaction:
+                            description: Last transaction timestamp
+                            format: date-time
+                            nullable: true
+                            type: string
+                          last_update_ts:
+                            description: Last update timestamp
+                            format: date-time
+                            type: string
+                          markup_bps:
+                            description: User markup rate in basis points (0-10000)
+                            type: integer
+                        type: object
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Balance retrieved
+      security:
+      - CognitoAuthorizer: []
+      summary: Get account balance
+      description: Retrieve the current account balance and credit information.
+      tags:
+      - Billing
+  /billing/ledger:
+    get:
+      responses:
+        default:
+          description: Default response for GET /billing/ledger
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      items:
+                        items:
+                          properties:
+                            amount_usd:
+                              description: Total amount in USD
+                              type: number
+                            event_ts:
+                              description: 'Timestamp when the event occurred (ISO-8601).
+                                For hourly_ebs: start of billed hour. For atomic events
+                                (admin, claim): equals posted_ts.'
+                              type: string
+                            event_type:
+                              description: Type of event (e.g., debit, credit)
+                              type: string
+                            markup_bps:
+                              description: Markup in basis points
+                              type: number
+                            markup_usd:
+                              description: Markup amount in USD
+                              type: number
+                            note:
+                              description: Additional notes
+                              type: string
+                            posted_ts:
+                              description: Timestamp when the entry was posted/recorded
+                                (ISO-8601)
+                              type: string
+                            source:
+                              description: Source of the charge or credit
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Ledger entries retrieved
+        '400':
+          description: Invalid date format or limit
+      security:
+      - CognitoAuthorizer: []
+      summary: Get billing ledger
+      description: Retrieve billing transaction history with optional date filters.
+        Filters by event_ts date (when the event occurred).
+      tags:
+      - Billing
+      parameters:
+      - description: Start event date (YYYY-MM-DD format) - filters by event_ts
+        in: query
+        name: since
+        required: false
+        schema:
+          format: date
+          type: string
+      - description: End event date (YYYY-MM-DD format) - filters by event_ts
+        in: query
+        name: until
+        required: false
+        schema:
+          format: date
+          type: string
+      - description: 'Maximum number of entries (default: 500, max: 5000)'
+        in: query
+        name: limit
+        required: false
+        schema:
+          maximum: 5000
+          minimum: 1
+          type: integer
+  /billing/summary:
+    get:
+      responses:
+        default:
+          description: Default response for GET /billing/summary
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      note:
+                        description: Clarification about ending_balance vs current
+                          balance
+                        type: string
+                      summary:
+                        properties:
+                          credits:
+                            items:
+                              properties:
+                                amount_usd:
+                                  type: number
+                                note:
+                                  type: string
+                                posted_ts:
+                                  type: string
+                                source:
+                                  type: string
+                              type: object
+                            type: array
+                          period:
+                            properties:
+                              from_date:
+                                type: string
+                              to_date:
+                                type: string
+                            type: object
+                          storage_charges:
+                            items:
+                              properties:
+                                daily_rate:
+                                  type: number
+                                from_ts:
+                                  type: string
+                                hourly_rate:
+                                  type: number
+                                hours:
+                                  type: integer
+                                size_gb:
+                                  type: integer
+                                to_ts:
+                                  type: string
+                                total_charges:
+                                  type: number
+                                volume_type:
+                                  type: string
+                                zpool_id:
+                                  type: string
+                              type: object
+                            type: array
+                          time_of_use_charges:
+                            items:
+                              properties:
+                                amount_usd:
+                                  type: number
+                                note:
+                                  type: string
+                                posted_ts:
+                                  type: string
+                                source:
+                                  type: string
+                                zpool_id:
+                                  type: string
+                              type: object
+                            type: array
+                          totals:
+                            properties:
+                              credits_applied:
+                                type: number
+                              ending_balance:
+                                type: number
+                              period_net:
+                                type: number
+                              storage_charges:
+                                type: number
+                              time_of_use_charges:
+                                type: number
+                            type: object
+                        type: object
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Billing summary retrieved
+        '400':
+          description: Invalid date format
+      security:
+      - CognitoAuthorizer: []
+      summary: Get billing summary
+      description: Retrieve aggregated billing summary grouped by zpool and rate period.
+        Groups hourly storage charges into periods, lists time-of-use charges (scrub
+        jobs, egress) separately, and calculates totals.
+      tags:
+      - Billing
+      parameters:
+      - description: Start date (YYYY-MM-DD format)
+        in: query
+        name: since
+        required: false
+        schema:
+          format: date
+          type: string
+      - description: End date (YYYY-MM-DD format)
+        in: query
+        name: until
+        required: false
+        schema:
+          format: date
+          type: string
+  /codes/claim:
+    post:
+      responses:
+        default:
+          description: Default response for POST /codes/claim
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      balance_after_cents:
+                        description: Balance after claim
+                        type: integer
+                      claim:
+                        properties:
+                          amount_cents:
+                            description: Credits added in cents
+                            type: integer
+                          code:
+                            description: Code that was claimed
+                            type: string
+                          code_type:
+                            description: Type of code
+                            type: string
+                          joined_group:
+                            description: Group joined (if applicable)
+                            type: string
+                        type: object
+                      dev_mode:
+                        description: Whether in development mode
+                        type: boolean
+                      pool_remaining_cents:
+                        description: Remaining pool credits
+                        type: integer
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Code redeemed successfully
+        '400':
+          description: Invalid or malformed request
+        '409':
+          description: Code already claimed
+        '410':
+          description: Code exhausted or disabled
+        '422':
+          description: Invalid code
+        '428':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      tos_url:
+                        description: URL of terms that must be accepted
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Terms acceptance required
+      security:
+      - CognitoAuthorizer: []
+      summary: Redeem credit code
+      description: Apply a promotional or gift credit code to account.
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            example:
+              code: PROMO2024
+            schema:
+              properties:
+                code:
+                  description: Credit code to redeem
+                  type: string
+                tos:
+                  description: Terms of Service acceptance (required if code requires
+                    ToS)
+                  properties:
+                    accepted_at:
+                      description: ISO8601 timestamp of acceptance
+                      format: date-time
+                      type: string
+                    url:
+                      description: ToS URL being accepted
+                      type: string
+                  type: object
+              required:
+              - code
+              type: object
+        required: true
+  /dodo/start:
+    post:
+      responses:
+        default:
+          description: Default response for POST /dodo/start
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      payment_link:
+                        description: URL to complete payment
+                        type: string
+                      purchase_id:
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Payment session created
+      security:
+      - CognitoAuthorizer: []
+      summary: Initiate payment session
+      description: Start a DodoPay payment session to add credits to account.
+      tags:
+      - Billing
+      requestBody:
+        content:
+          application/json:
+            example:
+              quantity: 10
+            schema:
+              properties:
+                quantity:
+                  description: Payment amount in dollars
+                  minimum: 1
+                  type: integer
+              required:
+              - quantity
+              type: object
+        required: true
+  /sshkey:
+    get:
+      responses:
+        default:
+          description: Default response for GET /sshkey
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      keys:
+                        items:
+                          properties:
+                            created_at:
+                              format: date-time
+                              type: string
+                            pubkey:
+                              description: SSH public key
+                              type: string
+                            pubkey_id:
+                              description: Unique key identifier
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: SSH keys retrieved
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: List user's SSH keys
+      description: Retrieve all SSH public keys registered for the authenticated user.
+      tags:
+      - SSH Keys
+    post:
+      responses:
+        default:
+          description: Default response for POST /sshkey
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      pubkey_id:
+                        description: Generated key ID
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: SSH key registered successfully
+        '400':
+          description: Invalid SSH key format
+        '409':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      pubkey_id:
+                        description: Existing key ID for this public key
+                        type: string
+                    type: object
+                  message:
+                    description: e.g. SSH key already registered
+                    type: string
+                type: object
+          description: SSH key already registered (same key content yields same ID;
+            no duplicate stored)
+      security:
+      - CognitoAuthorizer: []
+      summary: Register SSH public key
+      description: Add a new SSH public key for the authenticated user to enable SSH
+        access to zpools.
+      tags:
+      - SSH Keys
+      requestBody:
+        content:
+          application/json:
+            example:
+              pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILxyz... user@host
+            schema:
+              properties:
+                pubkey:
+                  description: SSH public key (RSA, ED25519, etc.)
+                  type: string
+              required:
+              - pubkey
+              type: object
+        required: true
+  /sshkey/{pubkey_id}:
+    delete:
+      responses:
+        default:
+          description: Default response for DELETE /sshkey/{pubkey_id}
+        '200':
+          description: SSH key deleted successfully
+        '404':
+          description: SSH key not found
+      security:
+      - CognitoAuthorizer: []
+      summary: Delete SSH key
+      description: Remove an SSH public key from the user's account.
+      tags:
+      - SSH Keys
+      parameters:
+      - description: ID of the SSH key to delete
+        in: path
+        name: pubkey_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: pubkey_id
+      in: path
+      description: Generated path parameter for pubkey_id
+      required: true
+      schema:
+        type: string
+  /pat:
+    get:
+      responses:
+        default:
+          description: Default response for GET /pat
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      items:
+                        items:
+                          properties:
+                            created_at:
+                              description: Creation timestamp
+                              format: date-time
+                              type: string
+                            expiry_at:
+                              description: Soft expiry timestamp
+                              format: date-time
+                              type: string
+                            hard_expiry_at:
+                              description: Hard expiry timestamp
+                              format: date-time
+                              type: string
+                            key_id:
+                              description: Unique key identifier
+                              type: string
+                            label:
+                              description: Token label
+                              type: string
+                            last_ip:
+                              description: Last IP address used from
+                              type: string
+                            last_ua:
+                              description: Last user agent
+                              type: string
+                            last_used_at:
+                              description: Last usage timestamp
+                              format: date-time
+                              nullable: true
+                              type: string
+                            scopes:
+                              description: List of scopes
+                              items:
+                                type: string
+                              type: array
+                            status:
+                              description: Token status (active, revoked, expired)
+                              type: string
+                            token_ver:
+                              description: Token version
+                              type: integer
+                            usage_count:
+                              description: Number of times used
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: PATs retrieved
+      security:
+      - CognitoAuthorizer: []
+      summary: List personal access tokens
+      description: Retrieve all active PATs for the authenticated user.
+      tags:
+      - Personal Access Tokens
+    post:
+      responses:
+        default:
+          description: Default response for POST /pat
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      key_id:
+                        type: string
+                      token:
+                        description: PAT value (only shown once)
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: PAT created successfully
+      security:
+      - CognitoAuthorizer: []
+      summary: Create personal access token
+      description: Generate a new PAT for API authentication.
+      tags:
+      - Personal Access Tokens
+      requestBody:
+        content:
+          application/json:
+            example:
+              label: CLI Access Token
+              scopes:
+              - zpool
+              - job
+              - sshkey
+            schema:
+              properties:
+                expiry:
+                  description: Optional soft expiry date (YYYY-MM-DD)
+                  format: date
+                  type: string
+                label:
+                  description: Token label for identification
+                  type: string
+                scopes:
+                  description: Optional list of scopes (e.g., 'pat', 'sshkey', 'job',
+                    'zpool')
+                  items:
+                    type: string
+                  type: array
+                tenant_id:
+                  description: Optional tenant ID for multi-tenant scenarios
+                  type: string
+              required:
+              - label
+              type: object
+        required: true
+  /pat/{key_id}:
+    delete:
+      responses:
+        default:
+          description: Default response for DELETE /pat/{key_id}
+        '200':
+          description: PAT revoked successfully
+        '404':
+          description: PAT not found
+      security:
+      - CognitoAuthorizer: []
+      summary: Revoke personal access token
+      description: Permanently revoke a PAT.
+      tags:
+      - Personal Access Tokens
+      parameters:
+      - description: ID of the PAT to revoke
+        in: path
+        name: key_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: key_id
+      in: path
+      description: Generated path parameter for key_id
+      required: true
+      schema:
+        type: string
+  /zpools:
+    get:
+      responses:
+        default:
+          description: Default response for GET /zpools
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      zpools:
+                        additionalProperties:
+                          properties:
+                            CreateTime:
+                              format: date-time
+                              type: string
+                            LastScrubTime:
+                              format: date-time
+                              nullable: true
+                              type: string
+                            Username:
+                              type: string
+                            VolumeCount:
+                              type: integer
+                            Volumes:
+                              items:
+                                properties:
+                                  CanModifyNow:
+                                    type: boolean
+                                  CreateTime:
+                                    format: date-time
+                                    type: string
+                                  ModLastTime:
+                                    format: date-time
+                                    nullable: true
+                                    type: string
+                                  ModProgress:
+                                    nullable: true
+                                    type: integer
+                                  ModState:
+                                    type: string
+                                  Size:
+                                    description: Volume size in GiB (1024³ bytes)
+                                    type: integer
+                                  State:
+                                    type: string
+                                  VolumeType:
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        description: Dictionary of zpools keyed by zpool_id
+                        type: object
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Zpools retrieved
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: List user's zpools
+      description: Retrieve all ZFS pools owned by the authenticated user.
+      tags:
+      - Zpools
+  /zpool:
+    post:
+      responses:
+        default:
+          description: Default response for POST /zpool
+        '202':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      job_id:
+                        description: Job ID for tracking creation progress
+                        type: string
+                      zpool_id:
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Zpool creation initiated
+        '400':
+          description: Invalid zpool configuration
+      security:
+      - CognitoAuthorizer: []
+      summary: Create a new zpool
+      description: Create a new ZFS storage pool with specified configuration.
+      tags:
+      - Zpools
+      requestBody:
+        content:
+          application/json:
+            example:
+              new_size_in_gib: 125
+              volume_type: gp3
+            schema:
+              properties:
+                new_size_in_gib:
+                  description: Pool size in GiB (must be exactly 125 during beta)
+                  enum:
+                  - 125
+                  type: integer
+                volume_type:
+                  description: 'EBS volume type. Accepted values: gp3, sc1'
+                  enum:
+                  - gp3
+                  - sc1
+                  type: string
+              required:
+              - new_size_in_gib
+              - volume_type
+              type: object
+        required: true
+  /zpool/{zpool_id}/modify:
+    post:
+      responses:
+        default:
+          description: Default response for POST /zpool/{zpool_id}/modify
+        '202':
+          description: Modification initiated
+        '400':
+          description: Invalid modification request
+        '404':
+          description: Zpool not found
+        '409':
+          description: Some volumes are ineligible for modification
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Modify zpool volume type
+      description: Change the EBS volume type for all volumes in a zpool (e.g., gp3
+        to sc1 or vice versa).
+      tags:
+      - Zpools
+      parameters:
+      - description: ID of the zpool to modify
+        in: path
+        name: zpool_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              volume_type: sc1
+            schema:
+              properties:
+                volume_type:
+                  description: Target EBS volume type
+                  enum:
+                  - gp3
+                  - sc1
+                  type: string
+              required:
+              - volume_type
+              type: object
+        required: true
+    parameters:
+    - name: zpool_id
+      in: path
+      description: Generated path parameter for zpool_id
+      required: true
+      schema:
+        type: string
+  /zpool/{zpool_id}/expand:
+    post:
+      responses:
+        default:
+          description: Default response for POST /zpool/{zpool_id}/expand
+        '202':
+          description: Expansion job started (future implementation)
+        '400':
+          description: Invalid expansion request
+        '404':
+          description: Zpool not found
+        '501':
+          description: Not implemented - this feature is planned for a future release
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Expand zpool size (Not Yet Implemented)
+      description: Expand EBS volumes and ZFS pool to use additional space. This operation
+        is planned but not yet available.
+      tags:
+      - Zpools
+      parameters:
+      - description: ID of the zpool to expand
+        in: path
+        name: zpool_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              new_size_in_gib: 150
+            schema:
+              properties:
+                new_size_in_gib:
+                  description: New size in GiB (increases only)
+                  minimum: 125
+                  type: integer
+              required:
+              - new_size_in_gib
+              type: object
+        required: true
+    parameters:
+    - name: zpool_id
+      in: path
+      description: Generated path parameter for zpool_id
+      required: true
+      schema:
+        type: string
+  /zpool/{zpool_id}/scrub:
+    post:
+      responses:
+        default:
+          description: Default response for POST /zpool/{zpool_id}/scrub
+        '202':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      job_id:
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Scrub initiated
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Start zpool scrub
+      description: Initiate a data integrity scrub on the specified zpool.
+      tags:
+      - Zpools
+      parameters:
+      - description: ID of the zpool to scrub
+        in: path
+        name: zpool_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: zpool_id
+      in: path
+      description: Generated path parameter for zpool_id
+      required: true
+      schema:
+        type: string
+  /zpool/{zpool_id}:
+    delete:
+      responses:
+        default:
+          description: Default response for DELETE /zpool/{zpool_id}
+        '200':
+          description: Zpool deletion initiated
+        '404':
+          description: Zpool not found
+      security:
+      - CognitoAuthorizer: []
+      summary: Delete a zpool
+      description: Permanently delete a ZFS pool and all its data.
+      tags:
+      - Zpools
+      parameters:
+      - description: ID of the zpool to delete
+        in: path
+        name: zpool_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: zpool_id
+      in: path
+      description: Generated path parameter for zpool_id
+      required: true
+      schema:
+        type: string
+  /jobs:
+    get:
+      responses:
+        default:
+          description: Default response for GET /jobs
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      jobs:
+                        items:
+                          properties:
+                            created_at:
+                              format: date-time
+                              type: string
+                            job_id:
+                              type: string
+                            operation:
+                              description: Operation type (create, delete, scrub,
+                                modify)
+                              type: string
+                            status:
+                              description: 'Job status. Accepted values: pending,
+                                running, completed, failed'
+                              enum:
+                              - pending
+                              - running
+                              - completed
+                              - failed
+                              type: string
+                            updated_at:
+                              format: date-time
+                              type: string
+                            zpool_id:
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Jobs retrieved
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: List user's jobs
+      description: Retrieve all background jobs (zpool operations) for the authenticated
+        user.
+      tags:
+      - Jobs
+      parameters:
+      - description: Maximum number of jobs to return (1-1000)
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 100
+          maximum: 1000
+          minimum: 1
+          type: integer
+      - description: Return jobs created before this timestamp (ISO 8601)
+        in: query
+        name: before
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: Return jobs created after this timestamp (ISO 8601)
+        in: query
+        name: after
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: Sort order
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: desc
+          enum:
+          - asc
+          - desc
+          type: string
+  /job/{job_id}:
+    get:
+      responses:
+        default:
+          description: Default response for GET /job/{job_id}
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      error:
+                        description: Error message if failed
+                        type: string
+                      job_id:
+                        type: string
+                      progress:
+                        description: Progress percentage
+                        type: integer
+                      status:
+                        type: string
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Job details retrieved
+        '404':
+          description: Job not found
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Get job details
+      description: Retrieve detailed information about a specific job.
+      tags:
+      - Jobs
+      parameters:
+      - description: Job ID
+        in: path
+        name: job_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: job_id
+      in: path
+      description: Generated path parameter for job_id
+      required: true
+      schema:
+        type: string
+  /job/{job_id}/history:
+    get:
+      responses:
+        default:
+          description: Default response for GET /job/{job_id}/history
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  detail:
+                    properties:
+                      events:
+                        items:
+                          properties:
+                            message:
+                              type: string
+                            status:
+                              type: string
+                            timestamp:
+                              format: date-time
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  message:
+                    type: string
+                type: object
+          description: Job history retrieved
+      security:
+      - CognitoAuthorizer: []
+      - ComboAuthorizer: []
+      summary: Get job history
+      description: Retrieve the status change history for a specific job.
+      tags:
+      - Jobs
+      parameters:
+      - description: Job ID
+        in: path
+        name: job_id
+        required: true
+        schema:
+          type: string
+    parameters:
+    - name: job_id
+      in: path
+      description: Generated path parameter for job_id
+      required: true
+      schema:
+        type: string
+components:
+  securitySchemes:
+    CognitoAuthorizer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Enter your JWT token from the /login endpoint
+    ComboAuthorizer:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: Enter JWT token or Personal Access Token (PAT)

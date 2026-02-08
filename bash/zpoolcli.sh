@@ -12,16 +12,13 @@ set -eo pipefail
 # Config & defaults
 # -----------------------------
 DOTFILE="${HOME}/.config/zpools.io/zpoolrc"
-API_DOMAIN="${API_DOMAIN:-}"
-SSH_HOST="${SSH_HOST:-}"
+ZPOOL_API_URL="${ZPOOL_API_URL:-}"
+SSH_HOST="${SSH_HOST:-ssh.zpools.io}"
 SSH_PRIVKEY_FILE="${SSH_PRIVKEY_FILE:-}"
-ZPOOLUSER="${ZPOOLUSER:-}"
+ZPOOL_USER="${ZPOOL_USER:-}"
+ZPOOL_PASSWORD="${ZPOOL_PASSWORD:-}"
 ZPOOLPAT="${ZPOOLPAT:-}"   # optional; may come from env or rcfile
 MAX_AGE_SECONDS="${MAX_AGE_SECONDS:-3600}"
-
-# CLI overrides (non-empty only if provided)
-CLI_USERNAME=""
-CLI_PASSWORD=""
 
 emit_json() {
   if command -v jq >/dev/null 2>&1; then
@@ -61,12 +58,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --username)
       [[ -n "${2:-}" ]] || die "--username requires a value"
-      CLI_USERNAME="$2"
+      ZPOOL_USER="$2"
       shift 2
       ;;
     --password)
       [[ -n "${2:-}" ]] || die "--password requires a value"
-      CLI_PASSWORD="$2"
+      ZPOOL_PASSWORD="$2"
       shift 2
       ;;
     --help|-h)
@@ -87,7 +84,7 @@ if [[ -f "$DOTFILE" ]]; then
     (
       # shellcheck source=/dev/null
       source "$DOTFILE"
-      for var in API_DOMAIN BZFS_BIN LOCAL_POOL REMOTE_POOL SSH_HOST SSH_PRIVKEY_FILE ZPOOLUSER ZPOOLPAT; do
+      for var in ZPOOL_API_URL BZFS_BIN LOCAL_POOL REMOTE_POOL SSH_HOST SSH_PRIVKEY_FILE ZPOOL_TOKEN_CACHE_DIR ZPOOL_USER ZPOOLPAT; do
         val="${!var:-}"
         if [[ -n "$val" ]]; then
           printf 'if [[ -z "${%s:-}" ]]; then export %s=%q; fi\n' "$var" "$var" "$val"
@@ -102,7 +99,7 @@ fi
 # -----------------------------
 usage() {
   echo
-  echo "API: ${API_DOMAIN:-https://api.dev.zpools.io}    SSH: ${SSH_HOST:-ssh.dev.zpools.io}"
+  echo "API: ${ZPOOL_API_URL:-https://api.dev.zpools.io}    SSH: ${SSH_HOST:-ssh.dev.zpools.io}"
   echo
   echo "Commands (left column shows auth type; PAT-capable lines include required PAT scope):"
   echo
@@ -150,18 +147,18 @@ usage() {
   echo
   echo "Options:"
   echo "  --rcfile <path>       Load config variables from an alternate rcfile (default: ${DOTFILE})"
-  echo "  --username <value>    Username for JWT auth when needed (overrides \$ZPOOLUSER just for this run)"
+  echo "  --username <value>    Username for JWT auth when needed (overrides \$ZPOOL_USER just for this run)"
   echo "  --password <value>    Password for JWT auth when needed (non-interactive/CI)"
   echo
   echo "Notes:"
   echo "  • ZPOOLPAT is used automatically for PAT-capable endpoints ([JWTPAT]). If a PAT is rejected (401/403), the command fails and does not fall back to JWT."
-  echo "  • No password is ever read from the rcfile. Username *may* be read (ZPOOLUSER)."
+  echo "  • No password is ever read from the rcfile. Username *may* be read (ZPOOL_USER)."
   echo "  • For endpoints requiring JWT, if creds are missing and stdin is not a TTY, the command errors out."
   echo "  • Required config if missing: set in ${DOTFILE} or export the env var:"
-  echo "      API_DOMAIN         (e.g., https://api.dev.zpools.io)"
+  echo "      ZPOOL_API_URL      (e.g., https://api.dev.zpools.io/v1)"
   echo "      SSH_HOST           (e.g., ssh.dev.zpools.io)"
   echo "      SSH_PRIVKEY_FILE   (path to your private key)"
-  echo "      ZPOOLUSER          (username; can also pass via --username)"
+  echo "      ZPOOL_USER         (username; can also pass via --username)"
   echo
   exit 1
 }
@@ -178,9 +175,9 @@ do_http() {
   local path="$2"
   local auth_header="$3"
   local data="${4:-}"
-  local url="${API_DOMAIN}${path}"
+  local url="${ZPOOL_API_URL}${path}"
 
-  [[ -n "$API_DOMAIN" ]] || die "API_DOMAIN is required. Set it in ${DOTFILE} or export API_DOMAIN"
+  [[ -n "$ZPOOL_API_URL" ]] || die "ZPOOL_API_URL is required. Set it in ${DOTFILE} or export ZPOOL_API_URL"
 
   local tmp
   tmp="$(mktemp)"
@@ -203,29 +200,39 @@ do_http() {
 # -----------------------------
 # Auth helpers (JWT only when needed)
 # -----------------------------
+# When ZPOOL_TOKEN_CACHE_DIR is empty (e.g. "" or ""), caching is disabled; token_file_for_user returns empty.
 token_file_for_user() {
   local user="$1"
   local domain
   domain=$(echo "$2" | sed -E 's#^https?://##; s#/.*##')
-  echo "/dev/shm/zpool_token_${domain}_${user}"
+  if [[ -z "$user" ]]; then
+    die "Username required for token cache path"
+  fi
+  if [[ "$user" == *" "* ]]; then
+    die "Username must not contain spaces"
+  fi
+  local base="${ZPOOL_TOKEN_CACHE_DIR:-}"
+  if [[ -z "$base" ]]; then
+    echo ""
+    return
+  fi
+  mkdir -p "$base"
+  echo "${base}/zpool_token_${domain}_${user}"
 }
 
 prompt_username_if_needed() {
-  if [[ -n "$CLI_USERNAME" ]]; then
-    ZPOOLUSER="$CLI_USERNAME"
-  fi
-  if [[ -z "$ZPOOLUSER" ]]; then
+  if [[ -z "$ZPOOL_USER" ]]; then
     if is_tty; then
-      read -r -p "Username: " ZPOOLUSER
+      read -r -p "Username: " ZPOOL_USER
     else
-      die "Username required but not provided. Use --username or set ZPOOLUSER in ${DOTFILE}"
+      die "Username required but not provided. Use --username or set ZPOOL_USER in ${DOTFILE}"
     fi
   fi
 }
 
 prompt_password_if_needed() {
-  if [[ -n "$CLI_PASSWORD" ]]; then
-    PASSWORD="$CLI_PASSWORD"
+  if [[ -n "$ZPOOL_PASSWORD" ]]; then
+    PASSWORD="$ZPOOL_PASSWORD"
   else
     if is_tty; then
       read -r -s -p "zpools.io Password: " PASSWORD
@@ -238,7 +245,7 @@ prompt_password_if_needed() {
 
 login_and_cache_tokens() {
   local user="$1"
-  local token_file; token_file="$(token_file_for_user "$user" "${API_DOMAIN}")"
+  local token_file; token_file="$(token_file_for_user "$user" "${ZPOOL_API_URL}")"
 
   prompt_password_if_needed
 
@@ -248,7 +255,7 @@ login_and_cache_tokens() {
   local tmp; tmp="$(mktemp)"
   local code
   code="$(
-    curl -s -o "$tmp" -w '%{http_code}' -X POST "${API_DOMAIN}/login" \
+    curl -s -o "$tmp" -w '%{http_code}' -X POST "${ZPOOL_API_URL}/login" \
       -H "Content-Type: application/json" \
       -d "$auth_body"
   )"
@@ -272,32 +279,47 @@ login_and_cache_tokens() {
   local expires_at
   expires_at=$(( $(date +%s) + expires ))
 
-  umask 0177
-  printf '{"access_token":"%s","id_token":"%s","expires_at":%s}\n' "$access" "$id" "$expires_at" >"$token_file"
-  chmod 0600 "$token_file" || true
+  if [[ -n "$token_file" ]]; then
+    umask 0177
+    printf '{"access_token":"%s","id_token":"%s","expires_at":%s}\n' "$access" "$id" "$expires_at" >"$token_file"
+    chmod 0600 "$token_file" || true
+  else
+    JWT_ACCESS_TOKEN="$access"
+    JWT_ID_TOKEN="$id"
+  fi
   note "Tokens refreshed."
 }
 
 ensure_jwt_fresh() {
   prompt_username_if_needed
-  local token_file; token_file="$(token_file_for_user "$ZPOOLUSER" "${API_DOMAIN}")"
+  local token_file; token_file="$(token_file_for_user "$ZPOOL_USER" "${ZPOOL_API_URL}")"
 
-  if [[ -f "$token_file" ]]; then
+  if [[ -z "$token_file" ]]; then
+    login_and_cache_tokens "$ZPOOL_USER"
+  elif [[ -f "$token_file" ]]; then
     local file_json expires_at
     file_json="$(cat "$token_file")"
     expires_at="$(jq -r '.expires_at // 0' <<<"$file_json")"
     if (( $(date +%s) >= expires_at )); then
-      login_and_cache_tokens "$ZPOOLUSER"
+      login_and_cache_tokens "$ZPOOL_USER"
     fi
   else
-    login_and_cache_tokens "$ZPOOLUSER"
+    login_and_cache_tokens "$ZPOOL_USER"
   fi
 }
 
 bearer() {
   local kind="$1" # "access" or "id"
-  local token_file; token_file="$(token_file_for_user "$ZPOOLUSER" "${API_DOMAIN}")"
-  jq -r --arg k "${kind}_token" '.[$k]' "$token_file"
+  local token_file; token_file="$(token_file_for_user "$ZPOOL_USER" "${ZPOOL_API_URL}")"
+  if [[ -z "$token_file" ]]; then
+    if [[ "$kind" == "access" ]]; then
+      echo "$JWT_ACCESS_TOKEN"
+    else
+      echo "$JWT_ID_TOKEN"
+    fi
+  else
+    jq -r --arg k "${kind}_token" '.[$k]' "$token_file"
+  fi
 }
 
 # -----------------------------
@@ -624,11 +646,11 @@ zfs_operations() {
   [[ -n "$SSH_HOST" ]] || die "SSH_HOST is required for zfs ops. Set it in ${DOTFILE} or export SSH_HOST."
   [[ -n "$SSH_PRIVKEY_FILE" ]] || die "SSH_PRIVKEY_FILE is required for zfs ops. Set it in ${DOTFILE} or export SSH_PRIVKEY_FILE."
   [[ -f "$SSH_PRIVKEY_FILE" ]] || die "SSH_PRIVKEY_FILE '$SSH_PRIVKEY_FILE' not found."
-  if [[ -z "$ZPOOLUSER" ]]; then
+  if [[ -z "$ZPOOL_USER" ]]; then
     if is_tty; then
-      read -r -p "ZFS SSH username (ZPOOLUSER): " ZPOOLUSER
+      read -r -p "ZFS SSH username (ZPOOL_USER): " ZPOOL_USER
     else
-      die "ZPOOLUSER required for zfs ops. Set it in ${DOTFILE} or export ZPOOLUSER."
+      die "ZPOOL_USER required for zfs ops. Set it in ${DOTFILE} or export ZPOOL_USER."
     fi
   fi
 
@@ -642,26 +664,26 @@ zfs_operations() {
     list)
       [[ -n "${1:-}" ]] || die "Missing dataset for zfs list."
       local dataset="$1"; shift || true
-      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs list "$dataset" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOL_USER@$SSH_HOST" zfs list "$dataset" "$@"
       ;;
     destroy)
       [[ -n "${1:-}" ]] || die "Missing dataset for zfs destroy."
       local dataset="$1"; shift || true
-      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs destroy "$dataset" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOL_USER@$SSH_HOST" zfs destroy "$dataset" "$@"
       ;;
     snapshot)
       [[ -n "${1:-}" ]] || die "Missing dataset@snapshot for zfs snapshot."
       local snap="$1"
-      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs snapshot "$snap"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOL_USER@$SSH_HOST" zfs snapshot "$snap"
       ;;
     recv)
       (( $# >= 1 )) || { echo; echo "Usage: zfs send localpool/ds@snap | $0 zfs recv [flags...] <zpool/dataset>"; echo; exit 1; }
       local full_dataset="${@: -1}"
       local recv_flags=("${@:1:$#-1}")
-      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" zfs recv "${recv_flags[@]}" "$full_dataset"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOL_USER@$SSH_HOST" zfs recv "${recv_flags[@]}" "$full_dataset"
       ;;
     ssh)
-      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOLUSER@$SSH_HOST" "$@"
+      ssh -i "$SSH_PRIVKEY_FILE" "$ZPOOL_USER@$SSH_HOST" "$@"
       ;;
     usage|help|--help|-h|*)
       echo
